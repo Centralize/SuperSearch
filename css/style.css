@@ -1,5 +1,5 @@
 /* SuperSearch - Main Stylesheet */
-/* Built with UIKit Framework Integration */
+/* Built with Bootstrap 5 Framework Integration */
 
 /* ========================================
    CSS Custom Properties (Variables)
@@ -90,61 +90,57 @@ a:hover {
 /* ========================================
    Header Customizations
    ======================================== */
-.uk-navbar-container {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+.navbar {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
     box-shadow: var(--shadow-md);
 }
 
-.uk-logo {
+.navbar-brand {
     font-size: 1.5rem;
     font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
 }
 
-.uk-navbar-nav > li > a {
+.navbar-nav .nav-link {
     transition: all var(--transition-fast);
     border-radius: var(--border-radius-sm);
+    color: rgba(255, 255, 255, 0.9) !important;
 }
 
-.uk-navbar-nav > li > a:hover {
+.navbar-nav .nav-link:hover {
     background-color: rgba(255, 255, 255, 0.1);
     transform: translateY(-1px);
+    color: white !important;
 }
 
 /* ========================================
    Search Form Enhancements
    ======================================== */
-#search-form {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.uk-search-input {
+.form-control-lg {
     border: 2px solid var(--border-color);
     border-radius: var(--border-radius-lg);
     font-size: 1.1rem;
-    padding: var(--spacing-md) var(--spacing-lg);
     transition: all var(--transition-normal);
-    background-color: var(--background-color);
 }
 
-.uk-search-input:focus {
+.form-control:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(30, 135, 240, 0.1);
-    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(30, 135, 240, 0.25);
 }
 
-.uk-form-icon {
-    color: var(--primary-color);
+.input-group .btn {
+    border-radius: 0 var(--border-radius-lg) var(--border-radius-lg) 0;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    border: none;
     transition: all var(--transition-fast);
-    cursor: pointer;
 }
 
-.uk-form-icon:hover {
-    color: var(--primary-dark);
-    transform: scale(1.1);
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 /* ========================================
@@ -165,6 +161,7 @@ a:hover {
     background-color: var(--background-color);
     transition: all var(--transition-fast);
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -198,7 +195,7 @@ a:hover {
 /* ========================================
    Button Enhancements
    ======================================== */
-.uk-button {
+.btn {
     border-radius: var(--border-radius-md);
     font-weight: 500;
     transition: all var(--transition-fast);
@@ -206,18 +203,14 @@ a:hover {
     overflow: hidden;
 }
 
-.uk-button:hover {
+.btn:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
 
-.uk-button-primary {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-    border: none;
-}
-
-.uk-button-primary:hover {
-    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+.btn-outline-secondary:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
 }
 
 /* ========================================
@@ -227,13 +220,14 @@ a:hover {
     min-height: 400px;
 }
 
-.uk-tab > li > a {
+.nav-tabs .nav-link {
     border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
     transition: all var(--transition-fast);
 }
 
-.uk-tab > .uk-active > a {
+.nav-tabs .nav-link.active {
     background-color: var(--primary-color);
+    border-color: var(--primary-color);
     color: white;
 }
 
@@ -244,72 +238,69 @@ a:hover {
     padding: var(--spacing-xxl);
 }
 
-.uk-spinner {
+.spinner-large {
+    width: 3rem;
+    height: 3rem;
+}
+
+.spinner-border {
     color: var(--primary-color);
 }
 
 /* ========================================
    Modal Enhancements
    ======================================== */
-.uk-modal-dialog {
+.modal-content {
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-lg);
+    border: none;
 }
 
-.uk-modal-title {
-    color: var(--text-primary);
+.modal-header {
     border-bottom: 2px solid var(--border-color);
-    padding-bottom: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
+}
+
+.modal-title {
+    color: var(--text-primary);
 }
 
 /* ========================================
    Form Enhancements
    ======================================== */
-.uk-input,
-.uk-select,
-.uk-textarea {
+.form-control,
+.form-select {
     border: 2px solid var(--border-color);
     border-radius: var(--border-radius-md);
     transition: all var(--transition-fast);
 }
 
-.uk-input:focus,
-.uk-select:focus,
-.uk-textarea:focus {
+.form-control:focus,
+.form-select:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(30, 135, 240, 0.1);
-    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(30, 135, 240, 0.25);
 }
 
 /* ========================================
    Notification System
    ======================================== */
-#notification-container {
-    z-index: 1050;
+.notification-container {
+    z-index: 1055;
 }
 
-.notification {
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-lg);
-    margin-bottom: var(--spacing-sm);
+.toast {
     animation: slideInRight 0.3s ease-out;
 }
 
-.notification.success {
-    background-color: var(--success-color);
-    color: white;
+.toast.bg-success {
+    background-color: var(--success-color) !important;
 }
 
-.notification.error {
-    background-color: var(--danger-color);
-    color: white;
+.toast.bg-danger {
+    background-color: var(--danger-color) !important;
 }
 
-.notification.info {
-    background-color: var(--info-color);
-    color: white;
+.toast.bg-info {
+    background-color: var(--info-color) !important;
 }
 
 @keyframes slideInRight {
@@ -369,9 +360,8 @@ footer {
 }
 
 /* Focus indicators for keyboard navigation */
-.uk-button:focus,
-.uk-input:focus,
-.uk-search-input:focus,
+.btn:focus,
+.form-control:focus,
 .engine-item:focus {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
@@ -397,6 +387,7 @@ footer {
 
 .glass-effect {
     background: rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }

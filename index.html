@@ -8,8 +8,8 @@
     <meta name="author" content="SuperSearch">
     <title>SuperSearch - Multi-Engine Search Platform</title>
     
-    <!-- UIKit CSS Framework -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/css/uikit.min.css" />
+    <!-- Bootstrap 5 CSS Framework -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
@@ -19,84 +19,79 @@
 </head>
 <body>
     <!-- Main Header -->
-    <header class="uk-background-primary uk-light" role="banner">
-        <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
-            <div class="uk-navbar-left">
-                <a class="uk-navbar-item uk-logo" href="#" aria-label="SuperSearch Home">
-                    <img src="assets/logo.svg" alt="SuperSearch Logo" width="40" height="40">
+    <header class="bg-primary text-white" role="banner">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand d-flex align-items-center" href="#" aria-label="SuperSearch Home">
+                    <img src="assets/images/logos/logo.svg" alt="SuperSearch Logo" width="40" height="40" class="me-2">
                     SuperSearch
                 </a>
-            </div>
-            <div class="uk-navbar-right">
-                <ul class="uk-navbar-nav">
-                    <li>
-                        <a href="#" id="settings-btn" aria-label="Settings" uk-tooltip="Settings">
-                            <span uk-icon="icon: settings; ratio: 1.2"></span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" id="history-btn" aria-label="Search History" uk-tooltip="Search History">
-                            <span uk-icon="icon: history; ratio: 1.2"></span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" id="help-btn" aria-label="Help" uk-tooltip="Help">
-                            <span uk-icon="icon: question; ratio: 1.2"></span>
-                        </a>
-                    </li>
-                </ul>
+                <div class="navbar-nav ms-auto">
+                    <a href="#" id="settings-btn" class="nav-link" aria-label="Settings" data-bs-toggle="tooltip" title="Settings">
+                        <i class="bi bi-gear-fill fs-5"></i>
+                    </a>
+                    <a href="#" id="history-btn" class="nav-link" aria-label="Search History" data-bs-toggle="tooltip" title="Search History">
+                        <i class="bi bi-clock-history fs-5"></i>
+                    </a>
+                    <a href="#" id="help-btn" class="nav-link" aria-label="Help" data-bs-toggle="tooltip" title="Help">
+                        <i class="bi bi-question-circle-fill fs-5"></i>
+                    </a>
+                </div>
             </div>
         </nav>
     </header>
 
     <!-- Main Content -->
-    <main class="uk-container uk-container-large uk-margin-top" role="main">
+    <main class="container-fluid mt-4" role="main">
         <!-- Search Section -->
-        <section class="uk-section uk-section-default" aria-labelledby="search-heading">
-            <div class="uk-container">
-                <h1 id="search-heading" class="uk-heading-medium uk-text-center uk-margin-bottom">
+        <section class="py-5" aria-labelledby="search-heading">
+            <div class="container">
+                <h1 id="search-heading" class="display-4 text-center mb-4">
                     Search Across Multiple Engines
                 </h1>
-                
+
                 <!-- Search Form -->
-                <form id="search-form" class="uk-search uk-search-large uk-width-1-1" role="search">
-                    <div class="uk-inline uk-width-1-1">
-                        <input 
-                            id="search-input" 
-                            class="uk-search-input uk-form-large" 
-                            type="search" 
-                            placeholder="Enter your search query..." 
-                            autocomplete="off"
-                            aria-label="Search query"
-                            required
-                        >
-                        <button 
-                            type="submit" 
-                            class="uk-form-icon uk-form-icon-flip" 
-                            aria-label="Search"
-                            uk-icon="icon: search; ratio: 1.5"
-                        ></button>
+                <form id="search-form" class="row justify-content-center mb-4" role="search">
+                    <div class="col-lg-8">
+                        <div class="input-group input-group-lg">
+                            <input
+                                id="search-input"
+                                class="form-control form-control-lg"
+                                type="search"
+                                placeholder="Enter your search query..."
+                                autocomplete="off"
+                                aria-label="Search query"
+                                required
+                            >
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                                aria-label="Search"
+                            >
+                                <i class="bi bi-search fs-5"></i>
+                            </button>
+                        </div>
                     </div>
                 </form>
 
                 <!-- Search Engine Selection -->
-                <div id="engine-selection" class="uk-margin-top" role="group" aria-labelledby="engines-heading">
-                    <h2 id="engines-heading" class="uk-h4 uk-text-center uk-margin-small-bottom">
+                <div id="engine-selection" class="mt-4" role="group" aria-labelledby="engines-heading">
+                    <h2 id="engines-heading" class="h4 text-center mb-3">
                         Select Search Engines
                     </h2>
-                    <div id="engine-list" class="uk-flex uk-flex-center uk-flex-wrap uk-child-width-auto uk-grid-small" uk-grid>
+                    <div id="engine-list" class="d-flex justify-content-center flex-wrap gap-2">
                         <!-- Search engines will be dynamically populated here -->
                     </div>
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="uk-margin-top uk-text-center">
-                    <button id="search-all-btn" class="uk-button uk-button-primary uk-button-large uk-margin-small-right">
-                        <span uk-icon="icon: search"></span>
+                <div class="mt-4 text-center">
+                    <button type="button" id="search-all-btn" class="btn btn-primary btn-lg me-2">
+                        <i class="bi bi-search me-1"></i>
                         Search All Engines
                     </button>
-                    <button id="manage-engines-btn" class="uk-button uk-button-default uk-button-large">
-                        <span uk-icon="icon: cog"></span>
+                    <button type="button" id="manage-engines-btn" class="btn btn-outline-secondary btn-lg">
+                        <i class="bi bi-gear me-1"></i>
                         Manage Engines
                     </button>
                 </div>
@@ -104,63 +99,65 @@
         </section>
 
         <!-- Search Results Section -->
-        <section id="results-section" class="uk-section uk-section-muted uk-hidden" aria-labelledby="results-heading">
-            <div class="uk-container">
-                <h2 id="results-heading" class="uk-heading-small uk-margin-bottom">
+        <section id="results-section" class="bg-light py-5 d-none" aria-labelledby="results-heading">
+            <div class="container">
+                <h2 id="results-heading" class="h3 mb-4">
                     Search Results
                 </h2>
-                
+
                 <!-- Loading State -->
-                <div id="loading-state" class="uk-text-center uk-hidden">
-                    <div uk-spinner="ratio: 2"></div>
-                    <p class="uk-margin-small-top">Searching across engines...</p>
+                <div id="loading-state" class="text-center d-none">
+                    <div class="spinner-border text-primary spinner-large" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Searching across engines...</p>
                 </div>
 
                 <!-- Results Tabs -->
-                <div id="results-tabs" class="uk-hidden">
-                    <ul class="uk-tab" uk-tab="connect: #results-content">
+                <div id="results-tabs" class="d-none">
+                    <ul class="nav nav-tabs" id="results-nav-tabs" role="tablist">
                         <!-- Tabs will be dynamically populated -->
                     </ul>
-                    <ul id="results-content" class="uk-switcher uk-margin">
+                    <div class="tab-content mt-3" id="results-content">
                         <!-- Tab content will be dynamically populated -->
-                    </ul>
+                    </div>
                 </div>
 
                 <!-- Error State -->
-                <div id="error-state" class="uk-alert-danger uk-hidden" uk-alert>
-                    <a class="uk-alert-close" uk-close></a>
-                    <h3>Search Error</h3>
-                    <p id="error-message">An error occurred while searching. Please try again.</p>
+                <div id="error-state" class="alert alert-danger alert-dismissible d-none" role="alert">
+                    <h4 class="alert-heading">Search Error</h4>
+                    <p id="error-message" class="mb-0">An error occurred while searching. Please try again.</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             </div>
         </section>
     </main>
 
     <!-- Footer -->
-    <footer class="uk-section uk-section-secondary uk-light" role="contentinfo">
-        <div class="uk-container">
-            <div class="uk-grid-match uk-child-width-1-3@m" uk-grid>
-                <div>
-                    <h3 class="uk-h4">SuperSearch</h3>
-                    <p class="uk-text-small">Multi-engine search platform for comprehensive results.</p>
+    <footer class="bg-dark text-light py-5" role="contentinfo">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h4>SuperSearch</h4>
+                    <p class="small">Multi-engine search platform for comprehensive results.</p>
                 </div>
-                <div>
-                    <h3 class="uk-h4">Features</h3>
-                    <ul class="uk-list uk-text-small">
+                <div class="col-md-4">
+                    <h4>Features</h4>
+                    <ul class="list-unstyled small">
                         <li>Multi-engine search</li>
                         <li>Custom search engines</li>
                         <li>Search history</li>
                         <li>Export/Import settings</li>
                     </ul>
                 </div>
-                <div>
-                    <h3 class="uk-h4">Privacy</h3>
-                    <p class="uk-text-small">All data is stored locally in your browser. No tracking, no ads.</p>
+                <div class="col-md-4">
+                    <h4>Privacy</h4>
+                    <p class="small">All data is stored locally in your browser. No tracking, no ads.</p>
                 </div>
             </div>
-            <hr class="uk-margin-medium-top">
-            <div class="uk-text-center uk-text-small">
-                <p>&copy; 2024 SuperSearch. Built with HTML5, JavaScript, and UIKit.</p>
+            <hr class="my-4">
+            <div class="text-center small">
+                <p>&copy; 2024 SuperSearch. Built with HTML5, JavaScript, and Bootstrap.</p>
             </div>
         </div>
     </footer>
@@ -168,75 +165,120 @@
     <!-- Modals Container -->
     <div id="modals-container">
         <!-- Settings Modal -->
-        <div id="settings-modal" uk-modal>
-            <div class="uk-modal-dialog uk-modal-body">
-                <h2 class="uk-modal-title">Settings</h2>
-                <div id="settings-content">
-                    <!-- Settings content will be dynamically populated -->
+        <div class="modal fade" id="settings-modal" tabindex="-1" aria-labelledby="settings-modal-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="settings-modal-label">Settings</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="settings-content">
+                            <!-- Settings content will be dynamically populated -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="save-settings-btn" class="btn btn-primary">Save</button>
+                    </div>
                 </div>
-                <p class="uk-text-right">
-                    <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
-                    <button id="save-settings-btn" class="uk-button uk-button-primary" type="button">Save</button>
-                </p>
             </div>
         </div>
 
         <!-- History Modal -->
-        <div id="history-modal" uk-modal>
-            <div class="uk-modal-dialog uk-modal-body">
-                <h2 class="uk-modal-title">Search History</h2>
-                <div id="history-content">
-                    <!-- History content will be dynamically populated -->
+        <div class="modal fade" id="history-modal" tabindex="-1" aria-labelledby="history-modal-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="history-modal-label">Search History</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="history-content">
+                            <!-- History content will be dynamically populated -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" id="clear-history-btn">Clear History</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
-                <p class="uk-text-right">
-                    <button class="uk-button uk-button-danger" id="clear-history-btn" type="button">Clear History</button>
-                    <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
-                </p>
             </div>
         </div>
 
         <!-- Add Engine Modal -->
-        <div id="add-engine-modal" uk-modal>
-            <div class="uk-modal-dialog uk-modal-body">
-                <h2 class="uk-modal-title">Add Search Engine</h2>
-                <form id="add-engine-form">
-                    <!-- Form content will be dynamically populated -->
-                </form>
+        <div class="modal fade" id="add-engine-modal" tabindex="-1" aria-labelledby="add-engine-modal-label" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="add-engine-modal-label">Add Search Engine</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="add-engine-form">
+                        <div class="modal-body">
+                            <!-- Form content will be dynamically populated -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Engine</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
         <!-- Edit Engine Modal -->
-        <div id="edit-engine-modal" uk-modal>
-            <div class="uk-modal-dialog uk-modal-body">
-                <h2 class="uk-modal-title">Edit Search Engine</h2>
-                <form id="edit-engine-form">
-                    <!-- Form content will be dynamically populated -->
-                </form>
+        <div class="modal fade" id="edit-engine-modal" tabindex="-1" aria-labelledby="edit-engine-modal-label" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="edit-engine-modal-label">Edit Search Engine</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="edit-engine-form">
+                        <div class="modal-body">
+                            <!-- Form content will be dynamically populated -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
         <!-- Help Modal -->
-        <div id="help-modal" uk-modal>
-            <div class="uk-modal-dialog uk-modal-body">
-                <h2 class="uk-modal-title">Help & Documentation</h2>
-                <div id="help-content">
-                    <!-- Help content will be dynamically populated -->
+        <div class="modal fade" id="help-modal" tabindex="-1" aria-labelledby="help-modal-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="help-modal-label">Help & Documentation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="help-content">
+                            <!-- Help content will be dynamically populated -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
-                <p class="uk-text-right">
-                    <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
-                </p>
             </div>
         </div>
     </div>
 
     <!-- Notification Container -->
-    <div id="notification-container" class="uk-position-top-right uk-margin-top">
+    <div id="notification-container" class="position-fixed top-0 end-0 p-3 notification-container">
         <!-- Notifications will be dynamically added here -->
     </div>
 
-    <!-- UIKit JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit-icons.min.js"></script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     
     <!-- Application JavaScript Modules -->
     <script type="module" src="js/app.js"></script>
