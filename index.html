@@ -3,1402 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SuperSearch - Multi-Engine Search Platform">
-    <meta name="keywords" content="search, multi-engine, google, duckduckgo, bing">
-    <meta name="author" content="SuperSearch Development Team">
+    <meta name="description" content="SuperSearch - Multi-engine search platform for comprehensive search results">
+    <meta name="keywords" content="search, multi-engine, google, duckduckgo, bing, search aggregator">
+    <meta name="author" content="SuperSearch">
     <title>SuperSearch - Multi-Engine Search Platform</title>
     
-    <!-- UIKit CSS -->
+    <!-- UIKit CSS Framework -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/css/uikit.min.css" />
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 </head>
 <body>
-    <!-- Enhanced Mobile-First Navigation -->
-    <nav class="uk-navbar-container uk-margin" uk-navbar>
-        <div class="uk-navbar-left">
-            <a class="uk-navbar-item uk-logo" href="#" aria-label="SuperSearch Home">
-                <span class="logo-icon" uk-icon="search"></span>
-                <span class="logo-text">SuperSearch</span>
-            </a>
-        </div>
-
-        <div class="uk-navbar-right">
-            <!-- Mobile Menu Toggle -->
-            <a class="uk-navbar-toggle uk-hidden@m mobile-menu-toggle" href="#" uk-toggle="target: #mobile-menu" aria-label="Open Menu">
-                <span uk-navbar-toggle-icon></span>
-            </a>
-
-            <!-- Desktop Navigation -->
-            <ul class="uk-navbar-nav uk-visible@m">
-                <li>
-                    <a href="#" id="historyBtn" aria-label="Search History">
-                        <span uk-icon="history"></span>
-                        <span class="nav-text uk-visible@l">History</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" id="settingsBtn" aria-label="Settings">
-                        <span uk-icon="settings"></span>
-                        <span class="nav-text uk-visible@l">Settings</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" id="helpBtn" aria-label="Help">
-                        <span uk-icon="question"></span>
-                        <span class="nav-text uk-visible@l">Help</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </nav>
-
-    <!-- Mobile Navigation Menu -->
-    <div id="mobile-menu" class="mobile-nav-menu" uk-offcanvas="mode: slide; overlay: true">
-        <div class="uk-offcanvas-bar">
-            <div class="mobile-nav-header">
-                <h3>Menu</h3>
-                <button class="uk-offcanvas-close" type="button" uk-close aria-label="Close Menu"></button>
+    <!-- Main Header -->
+    <header class="uk-background-primary uk-light" role="banner">
+        <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+            <div class="uk-navbar-left">
+                <a class="uk-navbar-item uk-logo" href="#" aria-label="SuperSearch Home">
+                    <img src="assets/logo.svg" alt="SuperSearch Logo" width="40" height="40">
+                    SuperSearch
+                </a>
             </div>
-
-            <ul class="mobile-nav-list">
-                <li>
-                    <a href="#" id="mobileHistoryBtn" class="mobile-nav-item">
-                        <span uk-icon="history" class="mobile-nav-icon"></span>
-                        <span class="mobile-nav-text">Search History</span>
-                        <span uk-icon="chevron-right" class="mobile-nav-arrow"></span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" id="mobileSettingsBtn" class="mobile-nav-item">
-                        <span uk-icon="settings" class="mobile-nav-icon"></span>
-                        <span class="mobile-nav-text">Settings</span>
-                        <span uk-icon="chevron-right" class="mobile-nav-arrow"></span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" id="mobileHelpBtn" class="mobile-nav-item">
-                        <span uk-icon="question" class="mobile-nav-icon"></span>
-                        <span class="mobile-nav-text">Help & Support</span>
-                        <span uk-icon="chevron-right" class="mobile-nav-arrow"></span>
-                    </a>
-                </li>
-            </ul>
-
-            <div class="mobile-nav-footer">
-                <div class="uk-text-small uk-text-muted uk-text-center">
-                    SuperSearch v1.0
-                </div>
+            <div class="uk-navbar-right">
+                <ul class="uk-navbar-nav">
+                    <li>
+                        <a href="#" id="settings-btn" aria-label="Settings" uk-tooltip="Settings">
+                            <span uk-icon="icon: settings; ratio: 1.2"></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="history-btn" aria-label="Search History" uk-tooltip="Search History">
+                            <span uk-icon="icon: history; ratio: 1.2"></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="help-btn" aria-label="Help" uk-tooltip="Help">
+                            <span uk-icon="icon: question; ratio: 1.2"></span>
+                        </a>
+                    </li>
+                </ul>
             </div>
-        </div>
-    </div>
+        </nav>
+    </header>
 
-    <!-- Main Container -->
-    <main class="uk-container uk-container-large">
+    <!-- Main Content -->
+    <main class="uk-container uk-container-large uk-margin-top" role="main">
         <!-- Search Section -->
-        <section class="search-section uk-section uk-section-large" aria-label="Search">
-            <div class="uk-container uk-text-center">
-                <h1 class="uk-heading-large uk-margin-bottom">SuperSearch</h1>
-                <p class="uk-text-lead uk-margin-bottom">Search across multiple engines simultaneously</p>
+        <section class="uk-section uk-section-default" aria-labelledby="search-heading">
+            <div class="uk-container">
+                <h1 id="search-heading" class="uk-heading-medium uk-text-center uk-margin-bottom">
+                    Search Across Multiple Engines
+                </h1>
                 
                 <!-- Search Form -->
-                <form class="search-form uk-margin-large" role="search">
-                    <div class="search-input-container uk-inline uk-width-1-1 uk-width-2-3@m">
-                        <span class="uk-form-icon" uk-icon="icon: search"></span>
+                <form id="search-form" class="uk-search uk-search-large uk-width-1-1" role="search">
+                    <div class="uk-inline uk-width-1-1">
                         <input 
-                            class="uk-input uk-form-large" 
+                            id="search-input" 
+                            class="uk-search-input uk-form-large" 
                             type="search" 
-                            id="searchInput"
-                            placeholder="Enter your search query..."
+                            placeholder="Enter your search query..." 
                             autocomplete="off"
                             aria-label="Search query"
-                            aria-describedby="search-help"
-                            maxlength="1000"
-                            required>
-                        
-                        <!-- Search Suggestions Dropdown -->
-                        <div class="search-suggestions" id="searchSuggestions">
-                            <!-- Suggestions will be populated dynamically -->
-                        </div>
-                    </div>
-                    
-                    <!-- Search Help Text -->
-                    <div id="search-help" class="uk-text-small uk-text-muted uk-margin-small-top uk-text-center">
-                        Press Ctrl+K to focus search, Enter to search, or Ctrl+Enter to search all engines
-                    </div>
-                    
-                    <!-- Search Engines Selection -->
-                    <div class="engine-selection uk-margin-medium-top" role="group" aria-labelledby="engine-selection-label">
-                        <!-- Engine Controls -->
-                        <div class="engine-controls">
-                            <div class="engine-controls-left">
-                                <h2 id="engine-selection-label" class="uk-h4 uk-margin-remove">Select Search Engines:</h2>
-                            </div>
-                            <div class="engine-controls-right">
-                                <button type="button" id="selectAllEngines" class="uk-button uk-button-small uk-button-default">
-                                    Select All
-                                </button>
-                                <button type="button" id="deselectAllEngines" class="uk-button uk-button-small uk-button-default uk-margin-small-left">
-                                    Deselect All
-                                </button>
-                                <span class="selected-count uk-margin-small-left" id="selectedCount">3 selected</span>
-                            </div>
-                        </div>
-                        
-                        <!-- Engine Grid -->
-                        <div class="engine-grid uk-flex uk-flex-center uk-flex-wrap uk-child-width-auto uk-grid-small" uk-grid id="engineGrid">
-                            <div>
-                                <label class="engine-checkbox" for="googleEngine">
-                                    <input type="checkbox" id="googleEngine" checked>
-                                    <img src="assets/icons/google.svg" alt="Google" class="engine-icon-img" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;">
-                                    <span>Google</span>
-                                </label>
-                            </div>
-                            <div>
-                                <label class="engine-checkbox" for="duckduckgoEngine">
-                                    <input type="checkbox" id="duckduckgoEngine" checked>
-                                    <img src="assets/icons/duckduckgo.svg" alt="DuckDuckGo" class="engine-icon-img" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;">
-                                    <span>DuckDuckGo</span>
-                                </label>
-                            </div>
-                            <div>
-                                <label class="engine-checkbox" for="bingEngine">
-                                    <input type="checkbox" id="bingEngine" checked>
-                                    <img src="assets/icons/bing.svg" alt="Bing" class="engine-icon-img" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;">
-                                    <span>Bing</span>
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <!-- Search Status -->
-                        <div class="search-status uk-margin-small-top uk-text-center uk-text-small uk-text-muted" id="searchStatus">
-                            Ready to search
-                        </div>
-                    </div>
-
-                    <!-- Search Button -->
-                    <div class="uk-margin-medium-top">
-                        <button type="submit" class="uk-button uk-button-primary uk-button-large" id="searchBtn">
-                            <span uk-icon="search"></span>
-                            <span class="uk-margin-small-left">Search</span>
-                        </button>
+                            required
+                        >
+                        <button 
+                            type="submit" 
+                            class="uk-form-icon uk-form-icon-flip" 
+                            aria-label="Search"
+                            uk-icon="icon: search; ratio: 1.5"
+                        ></button>
                     </div>
                 </form>
 
+                <!-- Search Engine Selection -->
+                <div id="engine-selection" class="uk-margin-top" role="group" aria-labelledby="engines-heading">
+                    <h2 id="engines-heading" class="uk-h4 uk-text-center uk-margin-small-bottom">
+                        Select Search Engines
+                    </h2>
+                    <div id="engine-list" class="uk-flex uk-flex-center uk-flex-wrap uk-child-width-auto uk-grid-small" uk-grid>
+                        <!-- Search engines will be dynamically populated here -->
+                    </div>
+                </div>
+
                 <!-- Quick Actions -->
-                <div class="quick-actions uk-margin-medium-top">
-                    <button class="uk-button uk-button-default uk-margin-small-right" id="manageEnginesBtn">
-                        <span uk-icon="cog"></span>
-                        <span class="uk-margin-small-left">Manage Engines</span>
+                <div class="uk-margin-top uk-text-center">
+                    <button id="search-all-btn" class="uk-button uk-button-primary uk-button-large uk-margin-small-right">
+                        <span uk-icon="icon: search"></span>
+                        Search All Engines
                     </button>
-                    <button class="uk-button uk-button-default uk-margin-small-right" id="importConfigBtn">
-                        <span uk-icon="upload"></span>
-                        <span class="uk-margin-small-left">Import Config</span>
-                    </button>
-                    <button class="uk-button uk-button-default" id="exportConfigBtn">
-                        <span uk-icon="download"></span>
-                        <span class="uk-margin-small-left">Export Config</span>
+                    <button id="manage-engines-btn" class="uk-button uk-button-default uk-button-large">
+                        <span uk-icon="icon: cog"></span>
+                        Manage Engines
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- Results Section -->
-        <section class="results-section uk-section uk-section-default uk-hidden" id="resultsSection" aria-label="Search Results">
+        <!-- Search Results Section -->
+        <section id="results-section" class="uk-section uk-section-muted uk-hidden" aria-labelledby="results-heading">
             <div class="uk-container">
-                <h2 class="uk-h3 uk-margin-medium-bottom">Search Results</h2>
+                <h2 id="results-heading" class="uk-heading-small uk-margin-bottom">
+                    Search Results
+                </h2>
                 
-                <!-- Loading Indicator -->
-                <div class="loading-indicator uk-text-center uk-hidden" id="loadingIndicator">
-                    <div class="loading-header uk-margin-medium-bottom">
-                        <div uk-spinner="ratio: 2"></div>
-                        <p class="loading-message uk-margin-small-top uk-text-large">Searching...</p>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div class="loading-progress uk-hidden">
-                        <div class="uk-margin-small-bottom">
-                            <div class="uk-progress">
-                                <div class="progress-bar uk-progress-bar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
-                        <p class="progress-text uk-text-small uk-text-muted">0 of 0 engines</p>
-                    </div>
-
-                    <!-- Individual Engine Progress -->
-                    <div class="engine-progress uk-margin-medium-top">
-                        <!-- Engine progress items will be dynamically generated -->
-                    </div>
+                <!-- Loading State -->
+                <div id="loading-state" class="uk-text-center uk-hidden">
+                    <div uk-spinner="ratio: 2"></div>
+                    <p class="uk-margin-small-top">Searching across engines...</p>
                 </div>
 
                 <!-- Results Tabs -->
-                <div class="results-tabs">
-                    <ul class="uk-tab" uk-tab="connect: #results-content" id="resultsTabs" role="tablist">
-                        <!-- Tabs will be dynamically generated -->
+                <div id="results-tabs" class="uk-hidden">
+                    <ul class="uk-tab" uk-tab="connect: #results-content">
+                        <!-- Tabs will be dynamically populated -->
                     </ul>
-
-                    <!-- Results Content -->
-                    <div class="uk-switcher" id="results-content">
-                        <!-- Results will be dynamically generated -->
-                    </div>
+                    <ul id="results-content" class="uk-switcher uk-margin">
+                        <!-- Tab content will be dynamically populated -->
+                    </ul>
                 </div>
 
-                <!-- No Results Message -->
-                <div class="no-results uk-text-center uk-hidden" id="noResults">
-                    <span uk-icon="icon: info; ratio: 2"></span>
-                    <p class="uk-margin-small-top">No search engines selected or no results found.</p>
+                <!-- Error State -->
+                <div id="error-state" class="uk-alert-danger uk-hidden" uk-alert>
+                    <a class="uk-alert-close" uk-close></a>
+                    <h3>Search Error</h3>
+                    <p id="error-message">An error occurred while searching. Please try again.</p>
                 </div>
             </div>
         </section>
     </main>
 
     <!-- Footer -->
-    <footer class="uk-section uk-section-secondary uk-margin-large-top">
-        <div class="uk-container uk-text-center">
-            <p class="uk-text-small uk-margin-remove">
-                &copy; 2024 SuperSearch. Built with HTML5, JavaScript, CSS3, UIKit & IndexedDB.
-            </p>
+    <footer class="uk-section uk-section-secondary uk-light" role="contentinfo">
+        <div class="uk-container">
+            <div class="uk-grid-match uk-child-width-1-3@m" uk-grid>
+                <div>
+                    <h3 class="uk-h4">SuperSearch</h3>
+                    <p class="uk-text-small">Multi-engine search platform for comprehensive results.</p>
+                </div>
+                <div>
+                    <h3 class="uk-h4">Features</h3>
+                    <ul class="uk-list uk-text-small">
+                        <li>Multi-engine search</li>
+                        <li>Custom search engines</li>
+                        <li>Search history</li>
+                        <li>Export/Import settings</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="uk-h4">Privacy</h3>
+                    <p class="uk-text-small">All data is stored locally in your browser. No tracking, no ads.</p>
+                </div>
+            </div>
+            <hr class="uk-margin-medium-top">
+            <div class="uk-text-center uk-text-small">
+                <p>&copy; 2024 SuperSearch. Built with HTML5, JavaScript, and UIKit.</p>
+            </div>
         </div>
     </footer>
 
-    <!-- Modals -->
-    
-    <!-- Settings Modal -->
-    <div id="settingsModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body">
-            <div class="modal-header">
-                <h2 class="uk-modal-title">
-                    <span uk-icon="settings" class="uk-text-primary uk-margin-small-right"></span>
-                    User Preferences
-                </h2>
-                <p class="uk-text-muted">Customize your SuperSearch experience</p>
-            </div>
-
-            <div class="settings-content">
-                <!-- Settings Categories Tabs -->
-                <ul class="uk-tab" uk-tab="connect: #settings-tabs">
-                    <li class="uk-active"><a href="#">Appearance</a></li>
-                    <li><a href="#">Search</a></li>
-                    <li><a href="#">Privacy</a></li>
-                    <li><a href="#">Advanced</a></li>
-                </ul>
-
-                <!-- Settings Tab Content -->
-                <ul id="settings-tabs" class="uk-switcher uk-margin">
-                    <!-- Appearance Settings -->
-                    <li class="settings-category">
-                        <div class="category-content">
-                            <h3 class="category-title">Appearance & Theme</h3>
-
-                            <div class="setting-group">
-                                <label class="setting-label" for="themeSelect">Theme</label>
-                                <select class="uk-select" id="themeSelect">
-                                    <option value="light">Light</option>
-                                    <option value="dark">Dark</option>
-                                    <option value="auto">Auto (System)</option>
-                                </select>
-                                <div class="setting-description">Choose your preferred color scheme</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="enableAnimations" checked>
-                                    <span class="uk-margin-small-left">Enable animations</span>
-                                </label>
-                                <div class="setting-description">Smooth transitions and visual effects</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="compactMode">
-                                    <span class="uk-margin-small-left">Compact mode</span>
-                                </label>
-                                <div class="setting-description">Reduce spacing for more content on screen</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="showEngineIcons" checked>
-                                    <span class="uk-margin-small-left">Show engine icons</span>
-                                </label>
-                                <div class="setting-description">Display search engine icons in results</div>
-                            </div>
-                        </div>
-                    </li>
-
-                    <!-- Search Settings -->
-                    <li class="settings-category">
-                        <div class="category-content">
-                            <h3 class="category-title">Search Behavior</h3>
-
-                            <div class="setting-group">
-                                <label class="setting-label" for="resultsPerPage">Results per page</label>
-                                <select class="uk-select" id="resultsPerPage">
-                                    <option value="10">10 results</option>
-                                    <option value="20">20 results</option>
-                                    <option value="50">50 results</option>
-                                    <option value="100">100 results</option>
-                                </select>
-                                <div class="setting-description">Number of search results to display per page</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="openInNewTab" checked>
-                                    <span class="uk-margin-small-left">Open results in new tab</span>
-                                </label>
-                                <div class="setting-description">Open search results in a new browser tab</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="enableAutoComplete" checked>
-                                    <span class="uk-margin-small-left">Enable auto-complete</span>
-                                </label>
-                                <div class="setting-description">Show search suggestions as you type</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="instantSearch">
-                                    <span class="uk-margin-small-left">Instant search</span>
-                                </label>
-                                <div class="setting-description">Search automatically as you type (experimental)</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label" for="searchDelay">Search delay (ms)</label>
-                                <input class="uk-input" type="number" id="searchDelay" min="0" max="2000" step="100" value="300">
-                                <div class="setting-description">Delay before triggering instant search</div>
-                            </div>
-                        </div>
-                    </li>
-
-                    <!-- Privacy Settings -->
-                    <li class="settings-category">
-                        <div class="category-content">
-                            <h3 class="category-title">Privacy & Data</h3>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="enableHistory" checked>
-                                    <span class="uk-margin-small-left">Save search history</span>
-                                </label>
-                                <div class="setting-description">Keep a record of your searches for quick access</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label" for="historyLimit">History limit</label>
-                                <select class="uk-select" id="historyLimit">
-                                    <option value="50">50 entries</option>
-                                    <option value="100">100 entries</option>
-                                    <option value="500">500 entries</option>
-                                    <option value="1000">1000 entries</option>
-                                    <option value="unlimited">Unlimited</option>
-                                </select>
-                                <div class="setting-description">Maximum number of search history entries to keep</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="enableAnalytics">
-                                    <span class="uk-margin-small-left">Enable usage analytics</span>
-                                </label>
-                                <div class="setting-description">Help improve SuperSearch by sharing anonymous usage data</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="clearOnExit">
-                                    <span class="uk-margin-small-left">Clear data on exit</span>
-                                </label>
-                                <div class="setting-description">Automatically clear search history when closing the app</div>
-                            </div>
-                        </div>
-                    </li>
-
-                    <!-- Advanced Settings -->
-                    <li class="settings-category">
-                        <div class="category-content">
-                            <h3 class="category-title">Advanced Options</h3>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="enableDebugMode">
-                                    <span class="uk-margin-small-left">Debug mode</span>
-                                </label>
-                                <div class="setting-description">Enable detailed logging for troubleshooting</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label" for="cacheTimeout">Cache timeout (minutes)</label>
-                                <input class="uk-input" type="number" id="cacheTimeout" min="1" max="1440" value="60">
-                                <div class="setting-description">How long to cache search engine data</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label" for="requestTimeout">Request timeout (seconds)</label>
-                                <input class="uk-input" type="number" id="requestTimeout" min="5" max="60" value="10">
-                                <div class="setting-description">Maximum time to wait for search engine responses</div>
-                            </div>
-
-                            <div class="setting-group">
-                                <label class="setting-label">
-                                    <input class="uk-checkbox" type="checkbox" id="enableKeyboardShortcuts" checked>
-                                    <span class="uk-margin-small-left">Keyboard shortcuts</span>
-                                </label>
-                                <div class="setting-description">Enable keyboard shortcuts for faster navigation</div>
-                            </div>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-            
-            <!-- Configuration Management -->
-            <div class="uk-margin-medium-top">
-                <h3 class="uk-h4">Configuration Management</h3>
-                <div class="uk-grid-small uk-child-width-auto" uk-grid>
-                    <div>
-                        <button class="uk-button uk-button-secondary uk-button-small" id="exportConfigBtn">
-                            <span uk-icon="download" class="uk-margin-small-right"></span>Export
-                        </button>
-                    </div>
-                    <div>
-                        <button class="uk-button uk-button-secondary uk-button-small" id="importConfigBtn">
-                            <span uk-icon="upload" class="uk-margin-small-right"></span>Import
-                        </button>
-                    </div>
-                    <div>
-                        <button class="uk-button uk-button-default uk-button-small" id="resetConfigBtn">
-                            <span uk-icon="refresh" class="uk-margin-small-right"></span>Reset to Defaults
-                        </button>
-                    </div>
+    <!-- Modals Container -->
+    <div id="modals-container">
+        <!-- Settings Modal -->
+        <div id="settings-modal" uk-modal>
+            <div class="uk-modal-dialog uk-modal-body">
+                <h2 class="uk-modal-title">Settings</h2>
+                <div id="settings-content">
+                    <!-- Settings content will be dynamically populated -->
                 </div>
-                <div class="uk-text-small uk-text-muted uk-margin-small-top">
-                    Export your configuration for backup or sharing, import from a file, or reset to default settings.
-                </div>
+                <p class="uk-text-right">
+                    <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
+                    <button id="save-settings-btn" class="uk-button uk-button-primary" type="button">Save</button>
+                </p>
             </div>
+        </div>
 
-            <div class="uk-modal-footer uk-text-right">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
-                <button class="uk-button uk-button-secondary" type="button" id="resetSettingsBtn">Reset to Defaults</button>
-                <button class="uk-button uk-button-primary" type="button" id="saveSettings">Save Settings</button>
+        <!-- History Modal -->
+        <div id="history-modal" uk-modal>
+            <div class="uk-modal-dialog uk-modal-body">
+                <h2 class="uk-modal-title">Search History</h2>
+                <div id="history-content">
+                    <!-- History content will be dynamically populated -->
+                </div>
+                <p class="uk-text-right">
+                    <button class="uk-button uk-button-danger" id="clear-history-btn" type="button">Clear History</button>
+                    <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
+                </p>
+            </div>
+        </div>
+
+        <!-- Add Engine Modal -->
+        <div id="add-engine-modal" uk-modal>
+            <div class="uk-modal-dialog uk-modal-body">
+                <h2 class="uk-modal-title">Add Search Engine</h2>
+                <form id="add-engine-form">
+                    <!-- Form content will be dynamically populated -->
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Engine Modal -->
+        <div id="edit-engine-modal" uk-modal>
+            <div class="uk-modal-dialog uk-modal-body">
+                <h2 class="uk-modal-title">Edit Search Engine</h2>
+                <form id="edit-engine-form">
+                    <!-- Form content will be dynamically populated -->
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div id="help-modal" uk-modal>
+            <div class="uk-modal-dialog uk-modal-body">
+                <h2 class="uk-modal-title">Help & Documentation</h2>
+                <div id="help-content">
+                    <!-- Help content will be dynamically populated -->
+                </div>
+                <p class="uk-text-right">
+                    <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- Manage Engines Modal -->
-    <div id="manageEnginesModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body">
-            <h2 class="uk-modal-title">Manage Search Engines</h2>
-            
-            <!-- Engine List -->
-            <div class="engines-list" id="enginesList">
-                <!-- Engine list will be dynamically generated -->
-            </div>
-            
-            <div class="uk-margin-medium-top">
-                <button class="uk-button uk-button-primary" id="addEngineBtn">
-                    <span uk-icon="plus"></span>
-                    <span class="uk-margin-small-left">Add Engine</span>
-                </button>
-            </div>
-            
-            <p class="uk-text-right uk-margin-medium-top">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
-            </p>
-        </div>
+    <!-- Notification Container -->
+    <div id="notification-container" class="uk-position-top-right uk-margin-top">
+        <!-- Notifications will be dynamically added here -->
     </div>
 
-    <!-- Add/Edit Engine Modal -->
-    <div id="engineFormModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body uk-width-large">
-            <button class="uk-modal-close-default" type="button" uk-close></button>
-
-            <div class="modal-header">
-                <h2 class="uk-modal-title" id="engineFormTitle">
-                    <span uk-icon="plus-circle" class="uk-margin-small-right"></span>
-                    Add Search Engine
-                </h2>
-                <p class="uk-text-muted uk-margin-remove">Add a custom search engine to expand your search capabilities</p>
-            </div>
-
-            <form class="engine-form" id="engineForm" novalidate>
-                <!-- Engine Preview -->
-                <div class="engine-preview uk-margin-medium" id="enginePreview" style="display: none;">
-                    <h4 class="uk-heading-line uk-text-center">
-                        <span>Preview</span>
-                    </h4>
-                    <div class="preview-card">
-                        <div class="preview-icon" id="previewIcon">
-                            <span class="preview-icon-fallback" id="previewIconFallback">?</span>
-                        </div>
-                        <div class="preview-info">
-                            <div class="preview-name" id="previewName">Engine Name</div>
-                            <div class="preview-url" id="previewUrl">https://example.com/search?q={query}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Basic Information -->
-                <fieldset class="uk-fieldset">
-                    <legend class="uk-legend">Basic Information</legend>
-
-                    <div class="uk-margin">
-                        <label class="uk-form-label" for="engineName">
-                            Engine Name *
-                            <span class="uk-text-small uk-text-muted">(e.g., "Wikipedia", "GitHub")</span>
-                        </label>
-                        <div class="uk-form-controls">
-                            <input class="uk-input" type="text" id="engineName" required
-                                   placeholder="Enter search engine name" maxlength="50">
-                            <div class="field-feedback" id="nameValidation"></div>
-                        </div>
-                    </div>
-
-                    <div class="uk-margin">
-                        <label class="uk-form-label" for="engineUrl">
-                            Search URL Template *
-                            <span class="uk-text-small uk-text-muted">(Must contain {query} placeholder)</span>
-                        </label>
-                        <div class="uk-form-controls">
-                            <input class="uk-input" type="url" id="engineUrl" required
-                                   placeholder="https://example.com/search?q={query}">
-                            <div class="uk-text-small uk-text-muted uk-margin-small-top">
-                                <span uk-icon="info"></span>
-                                Use <code>{query}</code> where search terms should be inserted
-                            </div>
-                            <div class="field-feedback" id="urlValidation"></div>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <!-- Appearance -->
-                <fieldset class="uk-fieldset uk-margin-medium-top">
-                    <legend class="uk-legend">Appearance</legend>
-
-                    <div class="uk-grid-small" uk-grid>
-                        <div class="uk-width-2-3@s">
-                            <label class="uk-form-label" for="engineIcon">
-                                Icon URL
-                                <span class="uk-text-small uk-text-muted">(Optional - PNG, SVG, or ICO format)</span>
-                            </label>
-                            <div class="uk-form-controls">
-                                <input class="uk-input" type="url" id="engineIcon"
-                                       placeholder="https://example.com/favicon.ico">
-                                <div class="field-feedback" id="iconValidation"></div>
-                            </div>
-                        </div>
-
-                        <div class="uk-width-1-3@s">
-                            <label class="uk-form-label" for="engineColor">Brand Color</label>
-                            <div class="uk-form-controls">
-                                <div class="color-input-wrapper">
-                                    <input class="uk-input color-input" type="color" id="engineColor" value="#4285f4">
-                                    <input class="uk-input color-text" type="text" id="engineColorText"
-                                           placeholder="#4285f4" pattern="^#[0-9A-Fa-f]{6}$">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <!-- Advanced Options -->
-                <fieldset class="uk-fieldset uk-margin-medium-top">
-                    <legend class="uk-legend">Options</legend>
-
-                    <div class="uk-margin">
-                        <label class="uk-form-label">Status</label>
-                        <div class="uk-form-controls">
-                            <label class="engine-status-toggle">
-                                <input class="uk-checkbox" type="checkbox" id="engineEnabled" checked>
-                                <span class="toggle-text">Enable this search engine</span>
-                                <div class="uk-text-small uk-text-muted">
-                                    Disabled engines won't appear in the search interface
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="uk-margin">
-                        <label class="uk-form-label">
-                            Description
-                            <span class="uk-text-small uk-text-muted">(Optional)</span>
-                        </label>
-                        <div class="uk-form-controls">
-                            <textarea class="uk-textarea" id="engineDescription" rows="2"
-                                      placeholder="Brief description of this search engine" maxlength="200"></textarea>
-                            <div class="character-count uk-text-small uk-text-muted uk-text-right">
-                                <span id="descriptionCount">0</span>/200
-                            </div>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <!-- URL Testing -->
-                <div class="url-tester uk-margin-medium-top" id="urlTester" style="display: none;">
-                    <h4 class="uk-heading-line">
-                        <span>Test URL</span>
-                    </h4>
-                    <div class="uk-grid-small" uk-grid>
-                        <div class="uk-width-2-3@s">
-                            <input class="uk-input" type="text" id="testQuery" placeholder="Enter test search term">
-                        </div>
-                        <div class="uk-width-1-3@s">
-                            <button class="uk-button uk-button-secondary uk-width-1-1" type="button" id="testUrlBtn">
-                                <span uk-icon="link"></span>
-                                <span class="uk-margin-small-left">Test URL</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="test-result uk-margin-small-top" id="testResult"></div>
-                </div>
-            </form>
-
-            <div class="modal-footer uk-margin-large-top">
-                <div class="uk-flex uk-flex-between uk-flex-middle">
-                    <div class="form-status" id="formStatus"></div>
-                    <div class="modal-actions">
-                        <button class="uk-button uk-button-default uk-modal-close" type="button">
-                            <span uk-icon="close"></span>
-                            <span class="uk-margin-small-left">Cancel</span>
-                        </button>
-                        <button class="uk-button uk-button-primary" type="button" id="saveEngine">
-                            <span uk-icon="check"></span>
-                            <span class="uk-margin-small-left">Save Engine</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Enhanced Search History Modal -->
-    <div id="historyModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body uk-width-large">
-            <div class="modal-header">
-                <h2 class="uk-modal-title">
-                    <span uk-icon="history" class="uk-text-primary uk-margin-small-right"></span>
-                    Search History
-                </h2>
-                <p class="uk-text-muted">View and manage your search history</p>
-            </div>
-
-            <div class="history-content">
-                <!-- History Controls -->
-                <div class="history-controls">
-                    <div class="uk-grid-small uk-flex-middle" uk-grid>
-                        <div class="uk-width-expand">
-                            <div class="uk-search uk-search-default">
-                                <span uk-search-icon></span>
-                                <input class="uk-search-input" type="search" id="historySearch" placeholder="Search history...">
-                            </div>
-                        </div>
-                        <div class="uk-width-auto">
-                            <button class="uk-button uk-button-default uk-button-small" type="button" id="clearAllHistoryBtn">
-                                <span uk-icon="trash" class="uk-margin-small-right"></span>Clear All
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- History Filters -->
-                <div class="history-filters">
-                    <div class="uk-grid-small uk-child-width-auto" uk-grid>
-                        <div>
-                            <select class="uk-select uk-form-small" id="historyTimeFilter">
-                                <option value="all">All Time</option>
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month">This Month</option>
-                            </select>
-                        </div>
-                        <div>
-                            <select class="uk-select uk-form-small" id="historyEngineFilter">
-                                <option value="all">All Engines</option>
-                                <!-- Engine options will be populated by JavaScript -->
-                            </select>
-                        </div>
-                        <div>
-                            <select class="uk-select uk-form-small" id="historySortOrder">
-                                <option value="newest">Newest First</option>
-                                <option value="oldest">Oldest First</option>
-                                <option value="frequency">Most Frequent</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- History List -->
-                <div class="history-list-container">
-                    <div id="historyList" class="history-list">
-                        <!-- History entries will be populated by JavaScript -->
-                    </div>
-
-                    <!-- Empty State -->
-                    <div id="historyEmptyState" class="history-empty-state">
-                        <div class="empty-state-content">
-                            <span uk-icon="history" class="empty-state-icon"></span>
-                            <h3>No Search History</h3>
-                            <p>Your search history will appear here as you use SuperSearch.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="uk-modal-footer uk-text-right">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
-                <button class="uk-button uk-button-secondary" type="button" id="exportHistoryBtn">
-                    <span uk-icon="download" class="uk-margin-small-right"></span>Export History
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Engine Confirmation Modal -->
-    <div id="deleteEngineModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body uk-width-medium">
-            <div class="modal-header">
-                <h2 class="uk-modal-title">
-                    <span uk-icon="warning" class="uk-text-danger uk-margin-small-right"></span>
-                    Delete Search Engine
-                </h2>
-                <p class="uk-text-muted">This action cannot be undone</p>
-            </div>
-
-            <div class="delete-confirmation-content">
-                <!-- Engine details will be populated here -->
-                <div id="deleteEngineDetails" class="engine-details-card">
-                    <!-- Engine info populated by JavaScript -->
-                </div>
-
-                <!-- Deletion consequences -->
-                <div id="deletionConsequences" class="consequences-section">
-                    <!-- Consequences populated by JavaScript -->
-                </div>
-
-                <!-- Alternative actions -->
-                <div id="alternativeActions" class="alternatives-section" style="display: none;">
-                    <h4>Alternative Actions</h4>
-                    <div class="uk-grid-small uk-child-width-1-1" uk-grid>
-                        <!-- Alternative actions populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="uk-modal-footer uk-text-right">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">
-                    <span uk-icon="close" class="uk-margin-small-right"></span>Cancel
-                </button>
-                <button id="confirmDeleteBtn" class="uk-button uk-button-danger" type="button">
-                    <span uk-icon="trash" class="uk-margin-small-right"></span>Delete Engine
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Export Configuration Modal -->
-    <div id="exportConfigModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body uk-width-large">
-            <div class="modal-header">
-                <h2 class="uk-modal-title">
-                    <span uk-icon="download" class="uk-text-primary uk-margin-small-right"></span>
-                    Export Configuration
-                </h2>
-                <p class="uk-text-muted">Export your search engines and settings for backup or sharing</p>
-            </div>
-
-            <div class="export-configuration-content">
-                <!-- Export Options -->
-                <div class="export-options-section">
-                    <h3 class="uk-h4">Export Options</h3>
-
-                    <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
-                        <div>
-                            <div class="export-option-card">
-                                <h4>What to Export</h4>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="exportEngines" checked>
-                                        <span class="uk-margin-small-left">Search Engines</span>
-                                        <div class="uk-text-small uk-text-muted">All your custom and default search engines</div>
-                                    </label>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="exportPreferences" checked>
-                                        <span class="uk-margin-small-left">Preferences</span>
-                                        <div class="uk-text-small uk-text-muted">Theme, settings, and user preferences</div>
-                                    </label>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="exportHistory">
-                                        <span class="uk-margin-small-left">Search History</span>
-                                        <div class="uk-text-small uk-text-muted">Your recent searches (privacy sensitive)</div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div class="export-option-card">
-                                <h4>File Options</h4>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label" for="exportFilename">Custom Filename</label>
-                                    <input class="uk-input uk-form-small" type="text" id="exportFilename"
-                                           placeholder="supersearch-config-2025-01-13">
-                                    <div class="uk-text-small uk-text-muted">.json extension will be added automatically</div>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="exportPrettyFormat" checked>
-                                        <span class="uk-margin-small-left">Pretty Format</span>
-                                        <div class="uk-text-small uk-text-muted">Human-readable JSON formatting</div>
-                                    </label>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="exportCompressed">
-                                        <span class="uk-margin-small-left">Compressed</span>
-                                        <div class="uk-text-small uk-text-muted">Smaller file size, less readable</div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Export Preview -->
-                <div class="export-preview-section">
-                    <h3 class="uk-h4">Export Preview</h3>
-                    <div id="exportPreview" class="export-preview-container">
-                        <!-- Preview content will be populated by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Export Summary -->
-                <div class="export-summary-section">
-                    <div id="exportSummary" class="export-summary-card">
-                        <!-- Summary will be populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="uk-modal-footer uk-text-right">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">
-                    <span uk-icon="close" class="uk-margin-small-right"></span>Cancel
-                </button>
-                <button id="previewExportBtn" class="uk-button uk-button-secondary" type="button">
-                    <span uk-icon="search" class="uk-margin-small-right"></span>Preview
-                </button>
-                <button id="downloadExportBtn" class="uk-button uk-button-primary" type="button">
-                    <span uk-icon="download" class="uk-margin-small-right"></span>Download Export
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Import Configuration Modal -->
-    <div id="importConfigModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body uk-width-large">
-            <div class="modal-header">
-                <h2 class="uk-modal-title">
-                    <span uk-icon="upload" class="uk-text-primary uk-margin-small-right"></span>
-                    Import Configuration
-                </h2>
-                <p class="uk-text-muted">Import search engines and settings from a configuration file</p>
-            </div>
-
-            <div class="import-configuration-content">
-                <!-- File Upload Section -->
-                <div class="import-upload-section">
-                    <h3 class="uk-h4">Select Configuration File</h3>
-
-                    <div class="file-upload-area" id="fileUploadArea">
-                        <div class="upload-dropzone" id="uploadDropzone">
-                            <div class="dropzone-content">
-                                <span uk-icon="cloud-upload" class="dropzone-icon"></span>
-                                <h4>Drop your configuration file here</h4>
-                                <p>or <a href="#" id="browseFileBtn" class="uk-link">browse to select a file</a></p>
-                                <div class="uk-text-small uk-text-muted">
-                                    Supports: .json files up to 10MB
-                                </div>
-                            </div>
-                        </div>
-
-                        <input type="file" id="configFileInput" accept=".json" style="display: none;">
-
-                        <!-- File Info Display -->
-                        <div id="fileInfo" class="file-info-card" style="display: none;">
-                            <div class="file-details">
-                                <div class="file-icon">
-                                    <span uk-icon="file-text"></span>
-                                </div>
-                                <div class="file-metadata">
-                                    <div class="file-name" id="fileName"></div>
-                                    <div class="file-stats" id="fileStats"></div>
-                                </div>
-                                <div class="file-actions">
-                                    <button class="uk-button uk-button-small uk-button-default" id="removeFileBtn">
-                                        <span uk-icon="close"></span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Import Options Section -->
-                <div class="import-options-section" id="importOptionsSection" style="display: none;">
-                    <h3 class="uk-h4">Import Options</h3>
-
-                    <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
-                        <div>
-                            <div class="import-option-card">
-                                <h4>Import Mode</h4>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-radio" type="radio" name="importMode" value="merge" checked>
-                                        <span class="uk-margin-small-left">Merge with existing</span>
-                                        <div class="uk-text-small uk-text-muted">Add new items, keep existing ones</div>
-                                    </label>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-radio" type="radio" name="importMode" value="replace">
-                                        <span class="uk-margin-small-left">Replace existing</span>
-                                        <div class="uk-text-small uk-text-muted">Remove all current data first</div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div class="import-option-card">
-                                <h4>What to Import</h4>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="importEngines" checked>
-                                        <span class="uk-margin-small-left">Search Engines</span>
-                                    </label>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="importPreferences" checked>
-                                        <span class="uk-margin-small-left">Preferences</span>
-                                    </label>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="importHistory">
-                                        <span class="uk-margin-small-left">Search History</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Import Preview Section -->
-                <div class="import-preview-section" id="importPreviewSection" style="display: none;">
-                    <h3 class="uk-h4">Import Preview</h3>
-                    <div id="importPreview" class="import-preview-container">
-                        <!-- Preview content will be populated by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Import Summary Section -->
-                <div class="import-summary-section" id="importSummarySection" style="display: none;">
-                    <div id="importSummary" class="import-summary-card">
-                        <!-- Summary will be populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="uk-modal-footer uk-text-right">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">
-                    <span uk-icon="close" class="uk-margin-small-right"></span>Cancel
-                </button>
-                <button id="validateImportBtn" class="uk-button uk-button-secondary" type="button" style="display: none;">
-                    <span uk-icon="check" class="uk-margin-small-right"></span>Validate
-                </button>
-                <button id="previewImportBtn" class="uk-button uk-button-secondary" type="button" style="display: none;">
-                    <span uk-icon="search" class="uk-margin-small-right"></span>Preview Changes
-                </button>
-                <button id="applyImportBtn" class="uk-button uk-button-primary" type="button" style="display: none;">
-                    <span uk-icon="upload" class="uk-margin-small-right"></span>Apply Import
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Import Configuration Modal -->
-    <div id="importConfigModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body uk-width-large">
-            <div class="modal-header">
-                <h2 class="uk-modal-title">
-                    <span uk-icon="upload" class="uk-text-primary uk-margin-small-right"></span>
-                    Import Configuration
-                </h2>
-                <p class="uk-text-muted">Import search engines and settings from a configuration file</p>
-            </div>
-
-            <div class="import-configuration-content">
-                <!-- File Upload Section -->
-                <div class="import-upload-section">
-                    <h3 class="uk-h4">Select Configuration File</h3>
-
-                    <div class="file-upload-area" id="fileUploadArea">
-                        <div class="upload-dropzone" id="uploadDropzone">
-                            <div class="dropzone-content">
-                                <span uk-icon="cloud-upload" class="dropzone-icon"></span>
-                                <h4>Drop your configuration file here</h4>
-                                <p>or <a href="#" id="browseFileBtn" class="uk-link">browse to select a file</a></p>
-                                <div class="uk-text-small uk-text-muted">
-                                    Supports: .json files up to 10MB
-                                </div>
-                            </div>
-                        </div>
-
-                        <input type="file" id="configFileInput" accept=".json" style="display: none;">
-
-                        <!-- File Info Display -->
-                        <div id="fileInfo" class="file-info-card" style="display: none;">
-                            <div class="file-details">
-                                <div class="file-icon">
-                                    <span uk-icon="file-text"></span>
-                                </div>
-                                <div class="file-metadata">
-                                    <div class="file-name" id="fileName"></div>
-                                    <div class="file-stats" id="fileStats"></div>
-                                </div>
-                                <div class="file-actions">
-                                    <button class="uk-button uk-button-small uk-button-default" id="removeFileBtn">
-                                        <span uk-icon="close"></span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Import Options Section -->
-                <div class="import-options-section" id="importOptionsSection" style="display: none;">
-                    <h3 class="uk-h4">Import Options</h3>
-
-                    <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
-                        <div>
-                            <div class="import-option-card">
-                                <h4>Import Mode</h4>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-radio" type="radio" name="importMode" value="merge" checked>
-                                        <span class="uk-margin-small-left">Merge with existing</span>
-                                        <div class="uk-text-small uk-text-muted">Add new items, keep existing ones</div>
-                                    </label>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-radio" type="radio" name="importMode" value="replace">
-                                        <span class="uk-margin-small-left">Replace existing</span>
-                                        <div class="uk-text-small uk-text-muted">Remove all current data first</div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div class="import-option-card">
-                                <h4>What to Import</h4>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="importEngines" checked>
-                                        <span class="uk-margin-small-left">Search Engines</span>
-                                    </label>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="importPreferences" checked>
-                                        <span class="uk-margin-small-left">Preferences</span>
-                                    </label>
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">
-                                        <input class="uk-checkbox" type="checkbox" id="importHistory">
-                                        <span class="uk-margin-small-left">Search History</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Import Preview Section -->
-                <div class="import-preview-section" id="importPreviewSection" style="display: none;">
-                    <h3 class="uk-h4">Import Preview</h3>
-                    <div id="importPreview" class="import-preview-container">
-                        <!-- Preview content will be populated by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Import Summary Section -->
-                <div class="import-summary-section" id="importSummarySection" style="display: none;">
-                    <div id="importSummary" class="import-summary-card">
-                        <!-- Summary will be populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="uk-modal-footer uk-text-right">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">
-                    <span uk-icon="close" class="uk-margin-small-right"></span>Cancel
-                </button>
-                <button id="validateImportBtn" class="uk-button uk-button-secondary" type="button" style="display: none;">
-                    <span uk-icon="check" class="uk-margin-small-right"></span>Validate
-                </button>
-                <button id="previewImportBtn" class="uk-button uk-button-secondary" type="button" style="display: none;">
-                    <span uk-icon="search" class="uk-margin-small-right"></span>Preview Changes
-                </button>
-                <button id="applyImportBtn" class="uk-button uk-button-primary" type="button" style="display: none;">
-                    <span uk-icon="upload" class="uk-margin-small-right"></span>Apply Import
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Search History Modal -->
-    <div id="historyModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body uk-width-large">
-            <div class="modal-header">
-                <h2 class="uk-modal-title">
-                    <span uk-icon="history" class="uk-text-primary uk-margin-small-right"></span>
-                    Search History
-                </h2>
-                <p class="uk-text-muted">View and manage your search history</p>
-            </div>
-
-            <div class="history-content">
-                <!-- History Controls -->
-                <div class="history-controls">
-                    <div class="uk-grid-small uk-flex-middle" uk-grid>
-                        <div class="uk-width-expand">
-                            <div class="uk-search uk-search-default">
-                                <span uk-search-icon></span>
-                                <input class="uk-search-input" type="search" id="historySearch" placeholder="Search history...">
-                            </div>
-                        </div>
-                        <div class="uk-width-auto">
-                            <button class="uk-button uk-button-default uk-button-small" id="clearHistoryBtn">
-                                <span uk-icon="trash" class="uk-margin-small-right"></span>Clear All
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- History Filters -->
-                <div class="history-filters">
-                    <div class="uk-grid-small uk-child-width-auto" uk-grid>
-                        <div>
-                            <select class="uk-select uk-form-small" id="historyTimeFilter">
-                                <option value="all">All Time</option>
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month">This Month</option>
-                            </select>
-                        </div>
-                        <div>
-                            <select class="uk-select uk-form-small" id="historyEngineFilter">
-                                <option value="all">All Engines</option>
-                                <!-- Engine options will be populated by JavaScript -->
-                            </select>
-                        </div>
-                        <div>
-                            <select class="uk-select uk-form-small" id="historySortOrder">
-                                <option value="newest">Newest First</option>
-                                <option value="oldest">Oldest First</option>
-                                <option value="frequency">Most Frequent</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- History List -->
-                <div class="history-list-container">
-                    <div id="historyList" class="history-list">
-                        <!-- History entries will be populated by JavaScript -->
-                    </div>
-
-                    <!-- Empty State -->
-                    <div id="historyEmptyState" class="history-empty-state" style="display: none;">
-                        <div class="empty-state-content">
-                            <span uk-icon="history" class="empty-state-icon"></span>
-                            <h3>No Search History</h3>
-                            <p>Your search history will appear here as you use SuperSearch.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="uk-modal-footer uk-text-right">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
-                <button class="uk-button uk-button-secondary" type="button" id="exportHistoryBtn">
-                    <span uk-icon="download" class="uk-margin-small-right"></span>Export History
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Enhanced Help Modal -->
-    <div id="helpModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body uk-width-large">
-            <div class="modal-header">
-                <h2 class="uk-modal-title">Help & Support</h2>
-                <button class="uk-modal-close-default" type="button" uk-close></button>
-            </div>
-
-            <div class="help-content">
-                <!-- Help Navigation Tabs -->
-                <ul class="uk-tab" uk-tab>
-                    <li class="uk-active"><a href="#">Quick Start</a></li>
-                    <li><a href="#">Shortcuts</a></li>
-                    <li><a href="#">FAQ</a></li>
-                </ul>
-
-                <!-- Help Tab Content -->
-                <ul class="uk-switcher uk-margin">
-                    <!-- Quick Start Tab -->
-                    <li>
-                        <div class="help-section">
-                            <h3>Getting Started</h3>
-                            <div class="uk-grid-small uk-child-width-1-1" uk-grid>
-                                <div>
-                                    <h4>1. Basic Search</h4>
-                                    <ul class="uk-list uk-list-bullet">
-                                        <li>Enter your search query in the main search box</li>
-                                        <li>Select search engines using checkboxes</li>
-                                        <li>Click "Search" or press Enter</li>
-                                        <li>Results open in new tabs for each engine</li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <h4>2. Managing Engines</h4>
-                                    <ul class="uk-list uk-list-bullet">
-                                        <li>Go to Settings → Search Engines</li>
-                                        <li>Add custom engines with "Add New Engine"</li>
-                                        <li>Edit engines with the pencil icon</li>
-                                        <li>Set default with the star icon</li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <h4>3. URL Templates</h4>
-                                    <p>Use {query} as placeholder in search URLs:</p>
-                                    <ul class="uk-list uk-list-bullet">
-                                        <li>Google: <code>https://www.google.com/search?q={query}</code></li>
-                                        <li>Wikipedia: <code>https://en.wikipedia.org/wiki/Special:Search?search={query}</code></li>
-                                        <li>YouTube: <code>https://www.youtube.com/results?search_query={query}</code></li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </li>
-
-                    <!-- Shortcuts Tab -->
-                    <li>
-                        <div class="help-section">
-                            <h3>Keyboard Shortcuts</h3>
-                            <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
-                                <div>
-                                    <h4>Global Shortcuts</h4>
-                                    <table class="uk-table uk-table-small">
-                                        <tbody>
-                                            <tr><td><kbd>/</kbd></td><td>Focus search</td></tr>
-                                            <tr><td><kbd>Enter</kbd></td><td>Perform search</td></tr>
-                                            <tr><td><kbd>Escape</kbd></td><td>Close modals</td></tr>
-                                            <tr><td><kbd>Ctrl+H</kbd></td><td>Open history</td></tr>
-                                            <tr><td><kbd>Ctrl+S</kbd></td><td>Open settings</td></tr>
-                                            <tr><td><kbd>Shift+?</kbd></td><td>Open help</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div>
-                                    <h4>Modal Navigation</h4>
-                                    <table class="uk-table uk-table-small">
-                                        <tbody>
-                                            <tr><td><kbd>Tab</kbd></td><td>Next field</td></tr>
-                                            <tr><td><kbd>Shift+Tab</kbd></td><td>Previous field</td></tr>
-                                            <tr><td><kbd>Enter</kbd></td><td>Activate button</td></tr>
-                                            <tr><td><kbd>Escape</kbd></td><td>Close modal</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </li>
-
-                    <!-- FAQ Tab -->
-                    <li>
-                        <div class="help-section">
-                            <h3>Frequently Asked Questions</h3>
-                            <ul uk-accordion>
-                                <li>
-                                    <a class="uk-accordion-title" href="#">How do I add custom search engines?</a>
-                                    <div class="uk-accordion-content">
-                                        <p>Go to Settings → Search Engines → Add New Engine. Enter name and URL template with {query} placeholder.</p>
-                                    </div>
-                                </li>
-                                <li>
-                                    <a class="uk-accordion-title" href="#">Is my data private?</a>
-                                    <div class="uk-accordion-content">
-                                        <p>Yes! All data is stored locally in your browser. No information is sent to our servers.</p>
-                                    </div>
-                                </li>
-                                <li>
-                                    <a class="uk-accordion-title" href="#">How do I backup my settings?</a>
-                                    <div class="uk-accordion-content">
-                                        <p>Use Export Configuration in Settings → Advanced to download a backup file.</p>
-                                    </div>
-                                </li>
-                                <li>
-                                    <a class="uk-accordion-title" href="#">Why won't an engine work?</a>
-                                    <div class="uk-accordion-content">
-                                        <p>Check the URL template includes {query} and test the URL manually in your browser.</p>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="uk-modal-footer uk-text-right">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
-                <button class="uk-button uk-button-primary" onclick="window.testComprehensiveFunctionality()">
-                    Test All Features
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- File Input for Import -->
-    <input type="file" id="importFileInput" accept=".json" class="uk-hidden">
-
-    <!-- UIKit JS -->
+    <!-- UIKit JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit-icons.min.js"></script>
     
-    <!-- Application JS Modules -->
-    <script src="js/utils.js"></script>
-    <script src="js/dbManager.js"></script>
-    <script src="js/searchEngine.js"></script>
-    <script src="js/searchHandler.js"></script>
-    <script src="js/configManager.js"></script>
-    <script src="js/app.js"></script>
+    <!-- Application JavaScript Modules -->
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>

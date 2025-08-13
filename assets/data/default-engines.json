@@ -1,0 +1,75 @@
+{
+  "version": "1.0.0",
+  "engines": [
+    {
+      "id": "google",
+      "name": "Google",
+      "description": "The world's most popular search engine",
+      "url": "https://www.google.com/search?q={query}",
+      "icon": "assets/icons/engines/google.svg",
+      "color": "#4285f4",
+      "isDefault": true,
+      "isActive": true,
+      "category": "general",
+      "features": ["web", "images", "news", "videos"],
+      "encoding": "UTF-8",
+      "method": "GET"
+    },
+    {
+      "id": "duckduckgo",
+      "name": "DuckDuckGo",
+      "description": "Privacy-focused search engine",
+      "url": "https://duckduckgo.com/?q={query}",
+      "icon": "assets/icons/engines/duckduckgo.svg",
+      "color": "#de5833",
+      "isDefault": false,
+      "isActive": true,
+      "category": "privacy",
+      "features": ["web", "images", "news", "privacy"],
+      "encoding": "UTF-8",
+      "method": "GET"
+    },
+    {
+      "id": "bing",
+      "name": "Bing",
+      "description": "Microsoft's search engine",
+      "url": "https://www.bing.com/search?q={query}",
+      "icon": "assets/icons/engines/bing.svg",
+      "color": "#0078d4",
+      "isDefault": false,
+      "isActive": true,
+      "category": "general",
+      "features": ["web", "images", "news", "videos"],
+      "encoding": "UTF-8",
+      "method": "GET"
+    }
+  ],
+  "categories": [
+    {
+      "id": "general",
+      "name": "General Search",
+      "description": "General purpose search engines"
+    },
+    {
+      "id": "privacy",
+      "name": "Privacy-Focused",
+      "description": "Search engines that prioritize user privacy"
+    },
+    {
+      "id": "academic",
+      "name": "Academic",
+      "description": "Search engines for academic and research content"
+    },
+    {
+      "id": "specialized",
+      "name": "Specialized",
+      "description": "Search engines for specific domains or content types"
+    }
+  ],
+  "metadata": {
+    "created": "2024-01-01T00:00:00Z",
+    "lastUpdated": "2024-01-01T00:00:00Z",
+    "version": "1.0.0",
+    "author": "SuperSearch Team"
+  }
+}

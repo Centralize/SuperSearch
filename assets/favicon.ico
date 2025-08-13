@@ -1,0 +1,12 @@
+# Favicon Placeholder
+# This is a placeholder file. In a real implementation, this would be a binary .ico file.
+# For now, browsers will fall back to the SVG favicon defined in the HTML head.
+# 
+# To create a proper favicon.ico:
+# 1. Use the favicon.svg as source
+# 2. Convert to ICO format using tools like:
+#    - Online converters (favicon.io, realfavicongenerator.net)
+#    - ImageMagick: convert favicon.svg favicon.ico
+#    - GIMP or other image editors
+# 
+# The ICO file should contain multiple sizes: 16x16, 32x32, 48x48
