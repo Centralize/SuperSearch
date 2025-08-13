@@ -109,6 +109,9 @@ export class UIManager {
         this.addEventListener(this.elements.searchInput, 'input', this.handleSearchInput.bind(this));
         this.addEventListener(this.elements.searchAllBtn, 'click', this.handleSearchAll.bind(this));
 
+        // Set up search debouncing
+        this.setupSearchDebouncing();
+
         // Navigation events
         this.addEventListener(this.elements.settingsBtn, 'click', this.handleSettingsClick.bind(this));
         this.addEventListener(this.elements.historyBtn, 'click', this.handleHistoryClick.bind(this));
@@ -1517,6 +1520,255 @@ export class UIManager {
                 errorDiv.remove();
             }
         }
+    }
+
+    // ========================================
+    // Performance Optimizations
+    // ========================================
+
+    /**
+     * Set up search input debouncing
+     */
+    setupSearchDebouncing() {
+        if (!this.elements.searchInput) return;
+
+        let debounceTimer;
+        const debounceDelay = 300; // 300ms delay
+
+        // Remove existing input listener and add debounced version
+        this.elements.searchInput.removeEventListener('input', this.handleSearchInput.bind(this));
+
+        this.elements.searchInput.addEventListener('input', (event) => {
+            clearTimeout(debounceTimer);
+
+            debounceTimer = setTimeout(() => {
+                this.handleSearchInput(event);
+            }, debounceDelay);
+        });
+    }
+
+    /**
+     * Optimize DOM operations with batch updates
+     */
+    batchDOMUpdates(updates) {
+        // Use requestAnimationFrame for smooth updates
+        requestAnimationFrame(() => {
+            updates.forEach(update => {
+                if (typeof update === 'function') {
+                    update();
+                }
+            });
+        });
+    }
+
+    /**
+     * Lazy load engine icons
+     */
+    lazyLoadEngineIcons() {
+        const engineItems = document.querySelectorAll('.engine-item img');
+
+        if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                            observer.unobserve(img);
+                        }
+                    }
+                });
+            });
+
+            engineItems.forEach(img => {
+                if (img.src && !img.dataset.src) {
+                    img.dataset.src = img.src;
+                    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Im0xNSAxNS02LTYiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'; // Placeholder
+                    imageObserver.observe(img);
+                }
+            });
+        }
+    }
+
+    /**
+     * Optimize database queries with caching
+     */
+    setupDatabaseOptimizations() {
+        // Cache frequently accessed data
+        this.cache = {
+            engines: null,
+            preferences: null,
+            lastCacheTime: 0,
+            cacheTimeout: 5 * 60 * 1000 // 5 minutes
+        };
+    }
+
+    /**
+     * Get cached data or fetch from database
+     */
+    async getCachedData(type, fetchFunction) {
+        const now = Date.now();
+        const cacheKey = type;
+
+        // Check if cache is valid
+        if (this.cache[cacheKey] &&
+            (now - this.cache.lastCacheTime) < this.cache.cacheTimeout) {
+            return this.cache[cacheKey];
+        }
+
+        // Fetch fresh data
+        try {
+            const data = await fetchFunction();
+            this.cache[cacheKey] = data;
+            this.cache.lastCacheTime = now;
+            return data;
+        } catch (error) {
+            // Return cached data if available, even if stale
+            if (this.cache[cacheKey]) {
+                console.warn(`Using stale cache for ${type}:`, error);
+                return this.cache[cacheKey];
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Clear cache
+     */
+    clearCache(type = null) {
+        if (type) {
+            this.cache[type] = null;
+        } else {
+            this.cache = {
+                engines: null,
+                preferences: null,
+                lastCacheTime: 0,
+                cacheTimeout: 5 * 60 * 1000
+            };
+        }
+    }
+
+    /**
+     * Throttle function execution
+     */
+    throttle(func, delay) {
+        let timeoutId;
+        let lastExecTime = 0;
+
+        return function (...args) {
+            const currentTime = Date.now();
+
+            if (currentTime - lastExecTime > delay) {
+                func.apply(this, args);
+                lastExecTime = currentTime;
+            } else {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    func.apply(this, args);
+                    lastExecTime = Date.now();
+                }, delay - (currentTime - lastExecTime));
+            }
+        };
+    }
+
+    /**
+     * Debounce function execution
+     */
+    debounce(func, delay) {
+        let timeoutId;
+
+        return function (...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    // ========================================
+    // Security Enhancements
+    // ========================================
+
+    /**
+     * Sanitize input to prevent XSS
+     */
+    sanitizeInput(input) {
+        if (typeof input !== 'string') return input;
+
+        // Basic XSS prevention
+        return input
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;')
+            .replace(/\//g, '&#x2F;');
+    }
+
+    /**
+     * Validate URL for security
+     */
+    isValidURL(url) {
+        try {
+            const urlObj = new URL(url);
+
+            // Only allow HTTP and HTTPS
+            if (!['http:', 'https:'].includes(urlObj.protocol)) {
+                return false;
+            }
+
+            // Prevent localhost and private IPs in production
+            const hostname = urlObj.hostname.toLowerCase();
+            const privateIPs = [
+                'localhost',
+                '127.0.0.1',
+                '0.0.0.0',
+                '::1'
+            ];
+
+            if (privateIPs.includes(hostname)) {
+                console.warn('Private/localhost URLs detected:', hostname);
+                // Allow in development, warn in production
+                return true; // For now, allow all
+            }
+
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Validate search engine configuration
+     */
+    validateEngineConfig(config) {
+        const errors = [];
+
+        // Required fields
+        if (!config.id || typeof config.id !== 'string') {
+            errors.push('Invalid engine ID');
+        }
+
+        if (!config.name || typeof config.name !== 'string') {
+            errors.push('Invalid engine name');
+        }
+
+        if (!config.url || typeof config.url !== 'string') {
+            errors.push('Invalid engine URL');
+        }
+
+        // URL validation
+        if (config.url && !this.isValidURL(config.url.replace('{query}', 'test'))) {
+            errors.push('Invalid URL format');
+        }
+
+        // Query placeholder validation
+        if (config.url && !config.url.includes('{query}')) {
+            errors.push('URL must contain {query} placeholder');
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
     }
 
     // ========================================
