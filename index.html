@@ -461,6 +461,48 @@
         </div>
     </div>
 
+    <!-- Delete Engine Confirmation Modal -->
+    <div id="deleteEngineModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body uk-width-medium">
+            <div class="modal-header">
+                <h2 class="uk-modal-title">
+                    <span uk-icon="warning" class="uk-text-danger uk-margin-small-right"></span>
+                    Delete Search Engine
+                </h2>
+                <p class="uk-text-muted">This action cannot be undone</p>
+            </div>
+
+            <div class="delete-confirmation-content">
+                <!-- Engine details will be populated here -->
+                <div id="deleteEngineDetails" class="engine-details-card">
+                    <!-- Engine info populated by JavaScript -->
+                </div>
+
+                <!-- Deletion consequences -->
+                <div id="deletionConsequences" class="consequences-section">
+                    <!-- Consequences populated by JavaScript -->
+                </div>
+
+                <!-- Alternative actions -->
+                <div id="alternativeActions" class="alternatives-section" style="display: none;">
+                    <h4>Alternative Actions</h4>
+                    <div class="uk-grid-small uk-child-width-1-1" uk-grid>
+                        <!-- Alternative actions populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="uk-modal-footer uk-text-right">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">
+                    <span uk-icon="close" class="uk-margin-small-right"></span>Cancel
+                </button>
+                <button id="confirmDeleteBtn" class="uk-button uk-button-danger" type="button">
+                    <span uk-icon="trash" class="uk-margin-small-right"></span>Delete Engine
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Help Modal -->
     <div id="helpModal" uk-modal>
         <div class="uk-modal-dialog uk-modal-body">

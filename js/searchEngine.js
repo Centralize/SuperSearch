@@ -278,7 +278,7 @@ class SearchEngineManager {
     }
 
     /**
-     * Delete search engine
+     * Delete search engine with enhanced validation
      * @param {string} id - Engine ID
      * @returns {Promise<void>}
      */
@@ -289,31 +289,279 @@ class SearchEngineManager {
                 throw new Error('Search engine not found');
             }
 
-            // Prevent deletion if it's the only engine
-            if (this.engines.length <= 1) {
-                throw new Error('Cannot delete the only search engine');
+            // Comprehensive deletion validation
+            const validationResult = this.validateEngineForDeletion(id);
+            if (!validationResult.canDelete) {
+                throw new Error(validationResult.reason);
             }
 
-            // If deleting default engine, set new default
+            // Log deletion attempt for audit
+            console.log(`Attempting to delete engine: ${engine.name} (${id})`);
+
+            // Handle default engine reassignment with smart selection
             if (engine.isDefault) {
-                const remainingEngines = this.engines.filter(e => e.id !== id);
-                if (remainingEngines.length > 0) {
-                    await this.setDefault(remainingEngines[0].id);
+                const newDefaultId = await this.selectNewDefaultEngine(id);
+                if (newDefaultId) {
+                    await this.setDefault(newDefaultId);
+                    console.log(`Reassigned default engine to: ${this.getEngine(newDefaultId)?.name}`);
                 }
+            }
+
+            // Remove from active engines if present
+            if (this.activeEngines.includes(id)) {
+                this.activeEngines = this.activeEngines.filter(activeId => activeId !== id);
+                await this.dbManager.updatePreferences({ activeEngines: this.activeEngines });
             }
 
             // Delete from database
             await this.dbManager.deleteEngine(id);
-            
+
             // Reload engines to update local cache
             await this.loadEngines();
-            
-            Utils.showNotification(`Deleted search engine: ${engine.name}`, 'success');
+
+            // Log successful deletion
+            console.log(`Successfully deleted engine: ${engine.name}`);
+
         } catch (error) {
             Utils.logError(error, 'Failed to delete engine');
-            Utils.showNotification(`Failed to delete engine: ${error.message}`, 'danger');
-            throw error;
+            throw error; // Re-throw for caller to handle UI feedback
         }
+    }
+
+    /**
+     * Comprehensive validation for engine deletion
+     * @param {string} id - Engine ID to validate for deletion
+     * @returns {Object} Validation result with canDelete boolean and detailed reason
+     */
+    validateEngineForDeletion(id) {
+        const engine = this.getEngine(id);
+        if (!engine) {
+            return {
+                canDelete: false,
+                reason: 'Engine not found',
+                severity: 'error'
+            };
+        }
+
+        const allEngines = this.getAllEngines();
+        const enabledEngines = this.getEnabledEngines();
+
+        // Cannot delete if it's the only engine
+        if (allEngines.length <= 1) {
+            return {
+                canDelete: false,
+                reason: 'Cannot delete the only search engine. Add another engine first.',
+                severity: 'critical',
+                suggestion: 'Add at least one more search engine before deleting this one.'
+            };
+        }
+
+        // Cannot delete if it's the only enabled engine
+        if (enabledEngines.length === 1 && engine.enabled) {
+            return {
+                canDelete: false,
+                reason: 'Cannot delete the only enabled search engine. Enable another engine first.',
+                severity: 'critical',
+                suggestion: 'Enable at least one other search engine before deleting this one.'
+            };
+        }
+
+        // Check if deletion would leave no suitable default
+        if (engine.isDefault) {
+            const remainingEnabledEngines = enabledEngines.filter(e => e.id !== id);
+            if (remainingEnabledEngines.length === 0) {
+                return {
+                    canDelete: false,
+                    reason: 'Cannot delete default engine when no other enabled engines exist.',
+                    severity: 'critical',
+                    suggestion: 'Enable another search engine before deleting the default one.'
+                };
+            }
+        }
+
+        // Warn about potential issues but allow deletion
+        const warnings = [];
+
+        if (engine.isDefault) {
+            warnings.push('This is your default search engine. Another engine will be set as default.');
+        }
+
+        if (engine.enabled && enabledEngines.length <= 2) {
+            warnings.push('You will have very few enabled search engines remaining.');
+        }
+
+        if (allEngines.length <= 3) {
+            warnings.push('You will have very few search engines remaining.');
+        }
+
+        return {
+            canDelete: true,
+            reason: null,
+            severity: warnings.length > 0 ? 'warning' : 'normal',
+            warnings
+        };
+    }
+
+    /**
+     * Smart selection of new default engine when current default is deleted
+     * @param {string} deletingEngineId - ID of engine being deleted
+     * @returns {Promise<string|null>} ID of new default engine or null
+     */
+    async selectNewDefaultEngine(deletingEngineId) {
+        const remainingEngines = this.engines.filter(e => e.id !== deletingEngineId && e.enabled);
+
+        if (remainingEngines.length === 0) {
+            return null;
+        }
+
+        // Enhanced priority order for selecting new default:
+        // 1. Most recently used engine (if we have usage data)
+        // 2. Engine that's in active engines list (user preference)
+        // 3. Popular/well-known engines (Google, DuckDuckGo, Bing)
+        // 4. Engine with most complete configuration (icon, description, etc.)
+        // 5. First enabled engine alphabetically
+
+        // Check for engines in active list first (user has explicitly selected these)
+        const activeEngines = remainingEngines.filter(e => this.activeEngines.includes(e.id));
+        if (activeEngines.length > 0) {
+            // Among active engines, prefer well-known ones
+            const preferredEngine = this.selectPreferredEngine(activeEngines);
+            if (preferredEngine) {
+                return preferredEngine.id;
+            }
+            return activeEngines[0].id;
+        }
+
+        // Check for well-known engines
+        const wellKnownEngine = this.selectPreferredEngine(remainingEngines);
+        if (wellKnownEngine) {
+            return wellKnownEngine.id;
+        }
+
+        // Select engine with most complete configuration
+        const bestConfiguredEngine = this.selectBestConfiguredEngine(remainingEngines);
+        if (bestConfiguredEngine) {
+            return bestConfiguredEngine.id;
+        }
+
+        // Fallback: sort alphabetically and pick first
+        remainingEngines.sort((a, b) => a.name.localeCompare(b.name));
+        return remainingEngines[0].id;
+    }
+
+    /**
+     * Select preferred engine from a list based on popularity/recognition
+     * @param {Array} engines - Array of engines to choose from
+     * @returns {Object|null} Preferred engine or null
+     */
+    selectPreferredEngine(engines) {
+        // Priority order of well-known engines
+        const preferredEngines = [
+            'google', 'duckduckgo', 'bing', 'yahoo', 'startpage',
+            'searx', 'yandex', 'baidu', 'ecosia'
+        ];
+
+        for (const preferred of preferredEngines) {
+            const engine = engines.find(e =>
+                e.name.toLowerCase().includes(preferred) ||
+                e.url.toLowerCase().includes(preferred)
+            );
+            if (engine) {
+                return engine;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Select engine with the most complete configuration
+     * @param {Array} engines - Array of engines to choose from
+     * @returns {Object|null} Best configured engine or null
+     */
+    selectBestConfiguredEngine(engines) {
+        if (engines.length === 0) return null;
+
+        // Score engines based on configuration completeness
+        const scoredEngines = engines.map(engine => {
+            let score = 0;
+
+            // Basic requirements (already met)
+            score += 10; // Has name and URL
+
+            // Optional enhancements
+            if (engine.icon && engine.icon.trim()) score += 5;
+            if (engine.color && engine.color !== '#4285f4') score += 3;
+            if (engine.description && engine.description.trim()) score += 4;
+
+            // URL quality indicators
+            if (engine.url.includes('https://')) score += 2;
+            if (engine.url.includes('{query}')) score += 1; // Should always be true
+
+            // Name quality (shorter, cleaner names preferred)
+            if (engine.name.length <= 15) score += 2;
+            if (!/[0-9]/.test(engine.name)) score += 1; // No numbers in name
+
+            return { engine, score };
+        });
+
+        // Sort by score (highest first) and return best engine
+        scoredEngines.sort((a, b) => b.score - a.score);
+        return scoredEngines[0].engine;
+    }
+
+    /**
+     * Get default engine reassignment preview
+     * @param {string} deletingEngineId - ID of engine being deleted
+     * @returns {Object} Preview of what will happen
+     */
+    getDefaultReassignmentPreview(deletingEngineId) {
+        const deletingEngine = this.getEngine(deletingEngineId);
+        if (!deletingEngine || !deletingEngine.isDefault) {
+            return { willReassign: false, newDefault: null, reason: null };
+        }
+
+        const remainingEngines = this.engines.filter(e => e.id !== deletingEngineId && e.enabled);
+
+        if (remainingEngines.length === 0) {
+            return {
+                willReassign: false,
+                newDefault: null,
+                reason: 'No other enabled engines available'
+            };
+        }
+
+        // Simulate the selection process
+        const activeEngines = remainingEngines.filter(e => this.activeEngines.includes(e.id));
+        let selectedEngine = null;
+        let selectionReason = '';
+
+        if (activeEngines.length > 0) {
+            const preferredEngine = this.selectPreferredEngine(activeEngines);
+            if (preferredEngine) {
+                selectedEngine = preferredEngine;
+                selectionReason = 'Popular engine from your active selection';
+            } else {
+                selectedEngine = activeEngines[0];
+                selectionReason = 'First engine from your active selection';
+            }
+        } else {
+            const wellKnownEngine = this.selectPreferredEngine(remainingEngines);
+            if (wellKnownEngine) {
+                selectedEngine = wellKnownEngine;
+                selectionReason = 'Well-known search engine';
+            } else {
+                const bestConfigured = this.selectBestConfiguredEngine(remainingEngines);
+                selectedEngine = bestConfigured || remainingEngines[0];
+                selectionReason = bestConfigured ? 'Best configured engine' : 'First available engine';
+            }
+        }
+
+        return {
+            willReassign: true,
+            newDefault: selectedEngine,
+            reason: selectionReason
+        };
     }
 
     /**

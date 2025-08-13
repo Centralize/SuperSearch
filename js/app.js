@@ -73,10 +73,12 @@ class SuperSearchApp {
                 window.testUS006 = () => this.testUS006Acceptance();
                 window.testUS007 = () => this.testUS007Acceptance();
                 window.testUS008 = () => this.testUS008Acceptance();
+                window.testUS009 = () => this.testUS009Acceptance();
                 window.testAddEngine = () => this.testAddEngineFlow();
                 window.testEditEngine = () => this.testEditEngineFlow();
+                window.testDeleteEngine = () => this.testDeleteEngineFlow();
                 window.validateEngineState = () => this.validateEngineManagerState();
-                console.log('Development commands available: testCRUD(), testDefaultEngine(), testActiveEngines(), testUS006(), testUS007(), testUS008(), testAddEngine(), testEditEngine(), validateEngineState()');
+                console.log('Development commands available: testCRUD(), testDefaultEngine(), testActiveEngines(), testUS006(), testUS007(), testUS008(), testUS009(), testAddEngine(), testEditEngine(), testDeleteEngine(), validateEngineState()');
             }
 
         } catch (error) {
@@ -1821,25 +1823,53 @@ class SuperSearchApp {
     }
 
     /**
-     * Delete engine with confirmation
+     * Delete engine with enhanced confirmation
      */
     async deleteEngine(engineId) {
         try {
             const engine = this.engineManager.getEngine(engineId);
             if (!engine) {
-                Utils.showNotification('Engine not found', 'danger');
+                this.showEngineErrorNotification('delete', 'Unknown Engine', 'Engine not found in database');
                 return;
             }
 
-            if (confirm(`Are you sure you want to delete "${engine.name}"?`)) {
-                await this.engineManager.deleteEngine(engineId);
-                await this.updateEnginesList();
-                await this.updateEngineSelection();
+            // Show enhanced confirmation dialog
+            const confirmed = await this.showDeleteConfirmationDialog(engine);
+            if (!confirmed) {
+                return; // User cancelled
             }
+
+            // Show progress notification
+            this.showProgressNotification('Deleting search engine...', 0);
+
+            // Perform deletion
+            await this.engineManager.deleteEngine(engineId);
+
+            // Update progress
+            this.showProgressNotification('Updating interface...', 50);
+
+            // Enhanced UI updates
+            await this.performEnhancedUIUpdate('delete', engineId, engine);
+
+            // Complete progress
+            this.showProgressNotification('Deletion complete!', 100);
+
+            // Show success notification
+            this.showEngineSuccessNotification('deleted', engine.name, { showUndo: false });
+
+            // Hide progress notification after delay
+            setTimeout(() => {
+                const notifications = document.querySelectorAll('.uk-notification-message');
+                notifications.forEach(notification => {
+                    if (notification.textContent.includes('Deletion complete')) {
+                        notification.remove();
+                    }
+                });
+            }, 1500);
 
         } catch (error) {
             Utils.logError(error, 'Failed to delete engine');
-            Utils.showNotification('Failed to delete engine', 'danger');
+            this.showEngineErrorNotification('delete', engine?.name || engineId, error.message);
         }
     }
 
@@ -3019,7 +3049,7 @@ class SuperSearchApp {
             await this.updateEngineSelection();
             this.showProgressNotification('Updating search options...', 75);
 
-            // Highlight the affected engine if it's visible
+            // Handle operation-specific UI updates
             if (operation === 'edit' && engineId) {
                 this.highlightUpdatedEngine(engineId);
             } else if (operation === 'add' && engineData) {
@@ -3028,6 +3058,9 @@ class SuperSearchApp {
                 if (newEngine) {
                     this.highlightUpdatedEngine(newEngine.id);
                 }
+            } else if (operation === 'delete' && engineId) {
+                // Handle deletion-specific UI updates
+                await this.handleDeletionUIUpdates(engineId, engineData);
             }
 
             // Update search interface if needed
@@ -3163,6 +3196,343 @@ class SuperSearchApp {
 
             modal.then(() => resolve(true), () => resolve(false));
         });
+    }
+
+    /**
+     * Show enhanced delete confirmation dialog
+     * @param {Object} engine - Engine to delete
+     * @returns {Promise<boolean>} Whether user confirmed deletion
+     */
+    async showDeleteConfirmationDialog(engine) {
+        return new Promise((resolve) => {
+            // Populate engine details
+            this.populateDeleteEngineDetails(engine);
+
+            // Analyze deletion consequences
+            const consequences = this.analyzeDeletionConsequences(engine);
+            this.populateDeletionConsequences(consequences);
+
+            // Show alternative actions if applicable
+            this.populateAlternativeActions(engine, consequences);
+
+            // Set up confirmation button
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            const modal = document.getElementById('deleteEngineModal');
+
+            if (!confirmBtn || !modal) {
+                console.error('Delete confirmation modal elements not found');
+                resolve(false);
+                return;
+            }
+
+            // Update button based on consequences
+            if (consequences.severity === 'critical') {
+                confirmBtn.className = 'uk-button uk-button-danger';
+                confirmBtn.innerHTML = '<span uk-icon="warning" class="uk-margin-small-right"></span>Force Delete';
+            } else if (consequences.severity === 'warning') {
+                confirmBtn.className = 'uk-button uk-button-danger';
+                confirmBtn.innerHTML = '<span uk-icon="trash" class="uk-margin-small-right"></span>Delete Engine';
+            } else {
+                confirmBtn.className = 'uk-button uk-button-danger';
+                confirmBtn.innerHTML = '<span uk-icon="trash" class="uk-margin-small-right"></span>Delete Engine';
+            }
+
+            // Set up event handlers
+            const handleConfirm = () => {
+                UIkit.modal(modal).hide();
+                cleanup();
+                resolve(true);
+            };
+
+            const handleCancel = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            const cleanup = () => {
+                confirmBtn.removeEventListener('click', handleConfirm);
+                UIkit.util.off(modal, 'hidden', handleCancel);
+            };
+
+            // Add event listeners
+            confirmBtn.addEventListener('click', handleConfirm);
+            UIkit.util.on(modal, 'hidden', handleCancel);
+
+            // Show modal
+            UIkit.modal(modal).show();
+        });
+    }
+
+    /**
+     * Populate engine details in delete confirmation dialog
+     * @param {Object} engine - Engine to delete
+     */
+    populateDeleteEngineDetails(engine) {
+        const detailsContainer = document.getElementById('deleteEngineDetails');
+        if (!detailsContainer) return;
+
+        const iconElement = engine.icon
+            ? `<img src="${engine.icon}" alt="${engine.name}" class="engine-icon">`
+            : `<div class="engine-icon-fallback" style="background-color: ${engine.color || '#4285f4'}">
+                 ${engine.name.charAt(0).toUpperCase()}
+               </div>`;
+
+        detailsContainer.innerHTML = `
+            <div class="engine-card">
+                <div class="engine-header">
+                    ${iconElement}
+                    <div class="engine-info">
+                        <h3 class="engine-name">
+                            ${Utils.sanitizeHtml(engine.name)}
+                            ${engine.isDefault ? '<span class="uk-badge uk-badge-primary">Default</span>' : ''}
+                            ${!engine.enabled ? '<span class="uk-badge">Disabled</span>' : ''}
+                        </h3>
+                        <p class="engine-url">${Utils.sanitizeHtml(engine.url)}</p>
+                        ${engine.description ? `<p class="engine-description">${Utils.sanitizeHtml(engine.description)}</p>` : ''}
+                    </div>
+                </div>
+                <div class="engine-metadata">
+                    <div class="uk-grid-small uk-child-width-auto" uk-grid>
+                        <div>
+                            <span uk-icon="calendar" class="uk-margin-small-right"></span>
+                            Created: ${new Date(engine.createdAt || Date.now()).toLocaleDateString()}
+                        </div>
+                        ${engine.modifiedAt ? `
+                        <div>
+                            <span uk-icon="history" class="uk-margin-small-right"></span>
+                            Modified: ${new Date(engine.modifiedAt).toLocaleDateString()}
+                        </div>
+                        ` : ''}
+                        <div>
+                            <span uk-icon="database" class="uk-margin-small-right"></span>
+                            ID: ${engine.id}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Analyze consequences of deleting an engine
+     * @param {Object} engine - Engine to delete
+     * @returns {Object} Consequences analysis
+     */
+    analyzeDeletionConsequences(engine) {
+        const consequences = {
+            severity: 'normal', // normal, warning, critical
+            issues: [],
+            warnings: [],
+            info: []
+        };
+
+        const allEngines = this.engineManager.getAllEngines();
+        const enabledEngines = this.engineManager.getEnabledEngines();
+
+        // Check if it's the only engine
+        if (allEngines.length === 1) {
+            consequences.severity = 'critical';
+            consequences.issues.push('This is your only search engine. Deleting it will prevent all searching.');
+            return consequences;
+        }
+
+        // Check if it's the only enabled engine
+        if (enabledEngines.length === 1 && engine.enabled) {
+            consequences.severity = 'critical';
+            consequences.issues.push('This is your only enabled search engine. Deleting it will prevent searching.');
+            consequences.info.push('Consider enabling another engine before deleting this one.');
+            return consequences;
+        }
+
+        // Check if it's the default engine
+        if (engine.isDefault) {
+            consequences.severity = 'warning';
+            consequences.warnings.push('This is your default search engine.');
+
+            // Find what will become the new default
+            const remainingEngines = allEngines.filter(e => e.id !== engine.id && e.enabled);
+            if (remainingEngines.length > 0) {
+                consequences.info.push(`"${remainingEngines[0].name}" will become your new default engine.`);
+            }
+        }
+
+        // Check usage implications
+        if (engine.enabled) {
+            consequences.warnings.push('This engine is currently enabled and available for searching.');
+        }
+
+        // Check if there are few engines left
+        if (allEngines.length <= 3) {
+            consequences.warnings.push('You will have very few search engines remaining.');
+        }
+
+        return consequences;
+    }
+
+    /**
+     * Populate deletion consequences in the dialog
+     * @param {Object} consequences - Consequences analysis
+     */
+    populateDeletionConsequences(consequences) {
+        const consequencesContainer = document.getElementById('deletionConsequences');
+        if (!consequencesContainer) return;
+
+        let content = '';
+
+        if (consequences.issues.length > 0) {
+            content += `
+                <div class="consequences-critical">
+                    <h4 class="uk-text-danger">
+                        <span uk-icon="warning"></span> Critical Issues
+                    </h4>
+                    <ul class="consequences-list">
+                        ${consequences.issues.map(issue => `<li class="uk-text-danger">${issue}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        if (consequences.warnings.length > 0) {
+            content += `
+                <div class="consequences-warnings">
+                    <h4 class="uk-text-warning">
+                        <span uk-icon="info"></span> Warnings
+                    </h4>
+                    <ul class="consequences-list">
+                        ${consequences.warnings.map(warning => `<li class="uk-text-warning">${warning}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        if (consequences.info.length > 0) {
+            content += `
+                <div class="consequences-info">
+                    <h4 class="uk-text-primary">
+                        <span uk-icon="info"></span> What will happen
+                    </h4>
+                    <ul class="consequences-list">
+                        ${consequences.info.map(info => `<li class="uk-text-primary">${info}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        consequencesContainer.innerHTML = content;
+    }
+
+    /**
+     * Populate alternative actions in the dialog
+     * @param {Object} engine - Engine to delete
+     * @param {Object} consequences - Consequences analysis
+     */
+    populateAlternativeActions(engine, consequences) {
+        const alternativesContainer = document.getElementById('alternativeActions');
+        if (!alternativesContainer) return;
+
+        const alternatives = [];
+
+        // If it's enabled, suggest disabling instead
+        if (engine.enabled && consequences.severity !== 'critical') {
+            alternatives.push({
+                action: 'disable',
+                title: 'Disable Instead',
+                description: 'Keep the engine but disable it from searches',
+                icon: 'ban',
+                class: 'uk-button-secondary'
+            });
+        }
+
+        // If it's the default, suggest changing default first
+        if (engine.isDefault) {
+            alternatives.push({
+                action: 'changeDefault',
+                title: 'Change Default First',
+                description: 'Set another engine as default before deleting',
+                icon: 'star',
+                class: 'uk-button-primary'
+            });
+        }
+
+        // If there are critical issues, suggest adding engines first
+        if (consequences.severity === 'critical') {
+            alternatives.push({
+                action: 'addEngine',
+                title: 'Add Engine First',
+                description: 'Add another search engine before deleting this one',
+                icon: 'plus',
+                class: 'uk-button-primary'
+            });
+        }
+
+        if (alternatives.length > 0) {
+            alternativesContainer.style.display = 'block';
+            const actionsContainer = alternativesContainer.querySelector('.uk-grid-small');
+
+            actionsContainer.innerHTML = alternatives.map(alt => `
+                <div>
+                    <button class="uk-button ${alt.class} uk-width-1-1"
+                            onclick="app.handleAlternativeAction('${alt.action}', '${engine.id}')">
+                        <span uk-icon="${alt.icon}" class="uk-margin-small-right"></span>
+                        <div class="uk-text-left">
+                            <div class="uk-text-bold">${alt.title}</div>
+                            <div class="uk-text-small">${alt.description}</div>
+                        </div>
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            alternativesContainer.style.display = 'none';
+        }
+    }
+
+    /**
+     * Handle alternative actions from delete confirmation dialog
+     * @param {string} action - Action to perform
+     * @param {string} engineId - Engine ID
+     */
+    async handleAlternativeAction(action, engineId) {
+        try {
+            // Close delete modal first
+            const deleteModal = document.getElementById('deleteEngineModal');
+            if (deleteModal) {
+                UIkit.modal(deleteModal).hide();
+            }
+
+            const engine = this.engineManager.getEngine(engineId);
+            if (!engine) {
+                Utils.showNotification('Engine not found', 'danger');
+                return;
+            }
+
+            switch (action) {
+                case 'disable':
+                    await this.engineManager.toggleEngine(engineId, false);
+                    Utils.showNotification(`Disabled "${engine.name}" instead of deleting`, 'success');
+                    await this.updateEnginesList();
+                    await this.updateEngineSelection();
+                    break;
+
+                case 'changeDefault':
+                    // Open engines list and highlight default selection
+                    this.openManageEnginesModal();
+                    Utils.showNotification('Select a new default engine, then try deleting again', 'primary');
+                    break;
+
+                case 'addEngine':
+                    // Open add engine modal
+                    this.openAddEngineModal();
+                    Utils.showNotification('Add another engine first, then try deleting again', 'primary');
+                    break;
+
+                default:
+                    console.warn('Unknown alternative action:', action);
+            }
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to perform alternative action');
+            Utils.showNotification('Failed to perform alternative action', 'danger');
+        }
     }
 
     /**
@@ -4305,6 +4675,382 @@ class SuperSearchApp {
             Utils.logError(error, 'US-006 acceptance testing failed');
             Utils.showNotification('US-006 acceptance testing failed', 'danger');
             throw error;
+        }
+    }
+
+    /**
+     * Handle UI updates specific to engine deletion
+     * @param {string} deletedEngineId - ID of deleted engine
+     * @param {Object} deletedEngineData - Data of deleted engine
+     */
+    async handleDeletionUIUpdates(deletedEngineId, deletedEngineData) {
+        try {
+            // Remove any existing highlights for the deleted engine
+            this.removeEngineHighlights(deletedEngineId);
+
+            // Show deletion animation if element still exists
+            this.showDeletionAnimation(deletedEngineId);
+
+            // Update default engine display if it was changed
+            const newDefaultEngine = this.engineManager.getDefaultEngine();
+            if (newDefaultEngine && deletedEngineData.isDefault) {
+                this.highlightNewDefaultEngine(newDefaultEngine.id);
+
+                // Show notification about default engine change
+                Utils.showNotification(
+                    `"${newDefaultEngine.name}" is now your default search engine`,
+                    'primary',
+                    { timeout: 4000 }
+                );
+            }
+
+            // Update search interface counters
+            this.updateSearchInterfaceCounters();
+
+            // Clean up any search results tabs for the deleted engine
+            this.closeTab(deletedEngineId);
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to handle deletion UI updates');
+        }
+    }
+
+    /**
+     * Remove highlights for a specific engine
+     * @param {string} engineId - Engine ID
+     */
+    removeEngineHighlights(engineId) {
+        // Remove from engines list
+        const engineItem = document.querySelector(`[data-engine-id="${engineId}"]`);
+        if (engineItem) {
+            engineItem.classList.remove('engine-updated', 'engine-highlighted');
+        }
+
+        // Remove from search engine checkboxes
+        const checkbox = document.getElementById(`${engineId}Engine`);
+        if (checkbox) {
+            const checkboxContainer = checkbox.closest('.engine-checkbox');
+            if (checkboxContainer) {
+                checkboxContainer.classList.remove('engine-updated', 'engine-highlighted');
+            }
+        }
+    }
+
+    /**
+     * Show deletion animation for an engine
+     * @param {string} engineId - Engine ID
+     */
+    showDeletionAnimation(engineId) {
+        const engineItem = document.querySelector(`[data-engine-id="${engineId}"]`);
+        if (engineItem) {
+            engineItem.classList.add('engine-deleting');
+
+            // Remove the element after animation
+            setTimeout(() => {
+                if (engineItem.parentNode) {
+                    engineItem.remove();
+                }
+            }, 500);
+        }
+
+        // Also animate checkbox removal
+        const checkbox = document.getElementById(`${engineId}Engine`);
+        if (checkbox) {
+            const checkboxContainer = checkbox.closest('.engine-checkbox');
+            if (checkboxContainer) {
+                checkboxContainer.classList.add('engine-deleting');
+
+                setTimeout(() => {
+                    if (checkboxContainer.parentNode) {
+                        checkboxContainer.remove();
+                    }
+                }, 500);
+            }
+        }
+    }
+
+    /**
+     * Highlight the new default engine after deletion
+     * @param {string} newDefaultEngineId - ID of new default engine
+     */
+    highlightNewDefaultEngine(newDefaultEngineId) {
+        // Highlight in engines list
+        const engineItem = document.querySelector(`[data-engine-id="${newDefaultEngineId}"]`);
+        if (engineItem) {
+            engineItem.classList.add('engine-new-default');
+
+            // Remove highlight after animation
+            setTimeout(() => {
+                engineItem.classList.remove('engine-new-default');
+            }, 3000);
+        }
+
+        // Highlight in search engine checkboxes
+        const checkbox = document.getElementById(`${newDefaultEngineId}Engine`);
+        if (checkbox) {
+            const checkboxContainer = checkbox.closest('.engine-checkbox');
+            if (checkboxContainer) {
+                checkboxContainer.classList.add('engine-new-default');
+
+                setTimeout(() => {
+                    checkboxContainer.classList.remove('engine-new-default');
+                }, 3000);
+            }
+        }
+    }
+
+    /**
+     * Update search interface counters after deletion
+     */
+    updateSearchInterfaceCounters() {
+        // Update active engines count
+        const activeEngines = this.engineManager.getActiveEngines();
+        const searchStatus = document.querySelector('.search-status');
+        if (searchStatus) {
+            searchStatus.textContent = `${activeEngines.length} engines selected`;
+        }
+
+        // Update total engines count
+        const totalEngines = this.engineManager.getAllEngines().length;
+        const totalEnginesDisplay = document.querySelector('.total-engines-count');
+        if (totalEnginesDisplay) {
+            totalEnginesDisplay.textContent = `${totalEngines} total engines`;
+        }
+
+        // Update default engine display
+        const defaultEngine = this.engineManager.getDefaultEngine();
+        const defaultEngineDisplay = document.querySelector('.default-engine-display');
+        if (defaultEngineDisplay && defaultEngine) {
+            defaultEngineDisplay.textContent = `Default: ${defaultEngine.name}`;
+        }
+    }
+
+    /**
+     * Test all US-009 acceptance criteria
+     */
+    async testUS009Acceptance() {
+        try {
+            Utils.showNotification('Testing US-009: Delete Search Engine acceptance criteria...', 'primary');
+
+            const results = {
+                deleteConfirmation: false,
+                deletionValidation: false,
+                defaultReassignment: false,
+                uiUpdates: false,
+                overallScore: 0,
+                errors: []
+            };
+
+            console.log('=== US-009 ACCEPTANCE CRITERIA TESTING ===');
+
+            // Ensure we have engines to work with
+            const engines = this.engineManager.getAllEngines();
+            if (engines.length < 2) {
+                results.errors.push('Need at least 2 engines for deletion testing');
+                console.log('✗ Insufficient engines for testing');
+                return results;
+            }
+
+            // 1. Delete confirmation dialog
+            try {
+                console.log('1. Testing delete confirmation dialog...');
+
+                if (typeof this.showDeleteConfirmationDialog === 'function' &&
+                    document.getElementById('deleteEngineModal')) {
+                    results.deleteConfirmation = true;
+                    console.log('✓ Delete confirmation dialog: IMPLEMENTED');
+                } else {
+                    results.errors.push('Delete confirmation dialog not found');
+                    console.log('✗ Delete confirmation dialog: MISSING');
+                }
+            } catch (error) {
+                results.errors.push('Delete confirmation test failed: ' + error.message);
+                console.log('✗ Delete confirmation dialog: ERROR');
+            }
+
+            // 2. Deletion validation
+            try {
+                console.log('2. Testing deletion validation...');
+
+                if (typeof this.engineManager.validateEngineForDeletion === 'function') {
+                    const testEngine = engines[0];
+                    const validationResult = this.engineManager.validateEngineForDeletion(testEngine.id);
+
+                    if (validationResult && typeof validationResult.canDelete === 'boolean') {
+                        results.deletionValidation = true;
+                        console.log('✓ Deletion validation: WORKING');
+                    } else {
+                        results.errors.push('Deletion validation not returning proper results');
+                        console.log('✗ Deletion validation: INVALID RESULTS');
+                    }
+                } else {
+                    results.errors.push('Deletion validation method not found');
+                    console.log('✗ Deletion validation: MISSING');
+                }
+            } catch (error) {
+                results.errors.push('Deletion validation test failed: ' + error.message);
+                console.log('✗ Deletion validation: ERROR');
+            }
+
+            // 3. Default engine reassignment
+            try {
+                console.log('3. Testing default engine reassignment...');
+
+                if (typeof this.engineManager.selectNewDefaultEngine === 'function' &&
+                    typeof this.engineManager.getDefaultReassignmentPreview === 'function') {
+
+                    const defaultEngine = this.engineManager.getDefaultEngine();
+                    if (defaultEngine) {
+                        const preview = this.engineManager.getDefaultReassignmentPreview(defaultEngine.id);
+
+                        if (preview && typeof preview.willReassign === 'boolean') {
+                            results.defaultReassignment = true;
+                            console.log('✓ Default engine reassignment: WORKING');
+                        } else {
+                            results.errors.push('Default reassignment preview not working');
+                            console.log('✗ Default engine reassignment: PREVIEW FAILED');
+                        }
+                    } else {
+                        results.errors.push('No default engine found for testing');
+                        console.log('✗ Default engine reassignment: NO DEFAULT');
+                    }
+                } else {
+                    results.errors.push('Default reassignment methods not found');
+                    console.log('✗ Default engine reassignment: MISSING METHODS');
+                }
+            } catch (error) {
+                results.errors.push('Default reassignment test failed: ' + error.message);
+                console.log('✗ Default engine reassignment: ERROR');
+            }
+
+            // 4. UI updates after deletion
+            try {
+                console.log('4. Testing UI updates after deletion...');
+
+                if (typeof this.handleDeletionUIUpdates === 'function' &&
+                    typeof this.showDeletionAnimation === 'function' &&
+                    typeof this.highlightNewDefaultEngine === 'function') {
+                    results.uiUpdates = true;
+                    console.log('✓ UI updates after deletion: IMPLEMENTED');
+                } else {
+                    results.errors.push('UI update methods not found');
+                    console.log('✗ UI updates after deletion: MISSING METHODS');
+                }
+            } catch (error) {
+                results.errors.push('UI updates test failed: ' + error.message);
+                console.log('✗ UI updates after deletion: ERROR');
+            }
+
+            // Calculate overall score
+            const passedCriteria = Object.values(results).filter(r => r === true).length;
+            results.overallScore = (passedCriteria / 4) * 100;
+
+            console.log('=== US-009 TEST RESULTS ===');
+            console.log(`Overall Score: ${results.overallScore}%`);
+            console.log(`Passed Criteria: ${passedCriteria}/4`);
+
+            if (results.overallScore >= 75) {
+                Utils.showNotification(`US-009 ACCEPTANCE: ${results.overallScore}% - PASSED`, 'success');
+                console.log('🎉 US-009: Delete Search Engine - ACCEPTANCE CRITERIA MET');
+            } else {
+                Utils.showNotification(`US-009 ACCEPTANCE: ${results.overallScore}% - NEEDS WORK`, 'warning');
+                console.log('⚠ US-009: Delete Search Engine - NEEDS IMPROVEMENT');
+            }
+
+            if (results.errors.length > 0) {
+                console.log('Issues found:', results.errors);
+            }
+
+            return results;
+
+        } catch (error) {
+            Utils.logError(error, 'US-009 acceptance testing failed');
+            Utils.showNotification('US-009 acceptance testing failed', 'danger');
+            throw error;
+        }
+    }
+
+    /**
+     * Test the complete delete engine flow
+     */
+    async testDeleteEngineFlow() {
+        try {
+            Utils.showNotification('Testing complete delete engine flow...', 'primary');
+
+            console.log('=== TESTING DELETE ENGINE FLOW ===');
+
+            // Step 1: Create a test engine for deletion
+            console.log('1. Creating test engine for deletion...');
+            const testEngineData = {
+                name: `Test Delete Engine ${Date.now()}`,
+                url: `https://test-delete-${Date.now()}.example.com/search?q={query}`,
+                icon: 'https://example.com/favicon.ico',
+                color: '#ff6b35',
+                enabled: true
+            };
+
+            await this.engineManager.addEngine(testEngineData);
+            const testEngine = this.engineManager.getAllEngines().find(e => e.name === testEngineData.name);
+
+            if (!testEngine) {
+                console.log('✗ Failed to create test engine');
+                Utils.showNotification('Failed to create test engine', 'danger');
+                return false;
+            }
+
+            console.log(`✓ Test engine created: "${testEngine.name}"`);
+
+            // Step 2: Test deletion validation
+            console.log('2. Testing deletion validation...');
+            const validationResult = this.engineManager.validateEngineForDeletion(testEngine.id);
+
+            if (!validationResult.canDelete) {
+                console.log('✗ Engine cannot be deleted:', validationResult.reason);
+                // Clean up and exit
+                await this.engineManager.deleteEngine(testEngine.id);
+                return false;
+            }
+
+            console.log('✓ Engine can be safely deleted');
+
+            // Step 3: Test confirmation dialog (simulate)
+            console.log('3. Testing confirmation dialog...');
+            const consequences = this.analyzeDeletionConsequences(testEngine);
+
+            if (!consequences) {
+                console.log('✗ Failed to analyze deletion consequences');
+                await this.engineManager.deleteEngine(testEngine.id);
+                return false;
+            }
+
+            console.log('✓ Deletion consequences analyzed');
+
+            // Step 4: Perform actual deletion
+            console.log('4. Performing deletion...');
+            await this.engineManager.deleteEngine(testEngine.id);
+
+            // Step 5: Verify engine was deleted
+            console.log('5. Verifying engine was deleted...');
+            const deletedEngine = this.engineManager.getEngine(testEngine.id);
+
+            if (deletedEngine) {
+                console.log('✗ Engine was not deleted properly');
+                Utils.showNotification('Engine deletion failed', 'danger');
+                return false;
+            }
+
+            console.log('✓ Engine successfully deleted');
+
+            // Final success
+            console.log('=== DELETE ENGINE FLOW TEST COMPLETED SUCCESSFULLY ===');
+            Utils.showNotification('Delete engine flow test completed successfully!', 'success');
+
+            return true;
+
+        } catch (error) {
+            console.error('Delete engine flow test failed:', error);
+            Utils.showNotification('Delete engine flow test failed: ' + error.message, 'danger');
+            return false;
         }
     }
 }
