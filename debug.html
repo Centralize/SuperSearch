@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperSearch Debug Console</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        .console {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #333;
+            color: #00ff00;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            background: #555;
+        }
+        .error { color: #ff4444; }
+        .warning { color: #ffaa00; }
+        .success { color: #44ff44; }
+        .info { color: #4488ff; }
+    </style>
+</head>
+<body>
+    <h1>🔧 SuperSearch Debug Console</h1>
+    
+    <div class="console" id="console"></div>
+    
+    <div class="controls">
+        <button onclick="testDatabase()">Test Database</button>
+        <button onclick="diagnoseDatabase()">Diagnose Database</button>
+        <button onclick="resetDatabase()">Reset Database</button>
+        <button onclick="testSearchEngines()">Test Search Engines</button>
+        <button onclick="testModules()">Test Modules</button>
+        <button onclick="clearConsole()">Clear Console</button>
+        <button onclick="exportLogs()">Export Logs</button>
+    </div>
+
+    <script type="module">
+        import { SuperSearchApp } from './js/app.js';
+        
+        let app;
+        let logs = [];
+        
+        // Initialize debug console
+        window.addEventListener('DOMContentLoaded', async () => {
+            log('🌟 SuperSearch Debug Console Starting...', 'info');
+            
+            try {
+                app = new SuperSearchApp();
+                app.enableDebug();
+                await app.init();
+                
+                window.app = app;
+                log('✅ SuperSearch initialized successfully', 'success');
+                
+            } catch (error) {
+                log(`❌ Failed to initialize: ${error.message}`, 'error');
+            }
+        });
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push(logEntry);
+            
+            const console = document.getElementById('console');
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = logEntry;
+            console.appendChild(div);
+            console.scrollTop = console.scrollHeight;
+        }
+        
+        window.testDatabase = async function() {
+            log('🗄️ Testing database...', 'info');
+            
+            try {
+                if (!app) {
+                    throw new Error('App not initialized');
+                }
+                
+                // Test basic operations
+                const engines = await app.modules.database.getAll('engines');
+                log(`✅ Found ${engines.length} search engines`, 'success');
+                
+                const preferences = await app.modules.database.getAll('preferences');
+                log(`✅ Found ${preferences.length} preferences`, 'success');
+                
+                const history = await app.modules.database.getAll('searchHistory');
+                log(`✅ Found ${history.length} history items`, 'success');
+                
+                log('✅ Database test completed successfully', 'success');
+                
+            } catch (error) {
+                log(`❌ Database test failed: ${error.message}`, 'error');
+            }
+        };
+        
+        window.diagnoseDatabase = async function() {
+            log('🔍 Diagnosing database...', 'info');
+            
+            try {
+                if (!app) {
+                    throw new Error('App not initialized');
+                }
+                
+                const diagnosis = await app.modules.database.diagnoseDatabase();
+                
+                log(`📊 Database Version: ${diagnosis.version} (expected: ${diagnosis.expectedVersion})`, 'info');
+                log(`📊 Initialized: ${diagnosis.isInitialized}`, 'info');
+                log(`📊 Connection: ${diagnosis.dbExists ? 'Connected' : 'Disconnected'}`, diagnosis.dbExists ? 'success' : 'error');
+                
+                Object.entries(diagnosis.stores).forEach(([storeName, storeInfo]) => {
+                    log(`📊 Store '${storeName}': ${storeInfo.exists ? 'EXISTS' : 'MISSING'}`, storeInfo.exists ? 'success' : 'error');
+                    if (storeInfo.exists) {
+                        log(`   Indexes: [${storeInfo.indexes.join(', ')}]`, 'info');
+                        if (storeInfo.missingIndexes.length > 0) {
+                            log(`   Missing: [${storeInfo.missingIndexes.join(', ')}]`, 'warning');
+                        }
+                    }
+                });
+                
+                if (diagnosis.issues.length > 0) {
+                    log('⚠️ Issues found:', 'warning');
+                    diagnosis.issues.forEach(issue => log(`   - ${issue}`, 'warning'));
+                } else {
+                    log('✅ No issues found', 'success');
+                }
+                
+            } catch (error) {
+                log(`❌ Diagnosis failed: ${error.message}`, 'error');
+            }
+        };
+        
+        window.resetDatabase = async function() {
+            log('🔄 Resetting database...', 'warning');
+            
+            try {
+                if (!app) {
+                    throw new Error('App not initialized');
+                }
+                
+                const confirmed = confirm('Are you sure you want to reset the database? This will delete all data.');
+                if (!confirmed) {
+                    log('❌ Database reset cancelled', 'info');
+                    return;
+                }
+                
+                await app.resetDatabase();
+                log('✅ Database reset completed', 'success');
+                
+            } catch (error) {
+                log(`❌ Database reset failed: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testSearchEngines = async function() {
+            log('🔍 Testing search engines...', 'info');
+            
+            try {
+                if (!app) {
+                    throw new Error('App not initialized');
+                }
+                
+                const engines = await app.modules.searchEngine.getActiveEngines();
+                log(`✅ Found ${engines.length} active engines`, 'success');
+                
+                engines.forEach(engine => {
+                    log(`   - ${engine.name} (${engine.id})${engine.isDefault ? ' [DEFAULT]' : ''}`, 'info');
+                });
+                
+                // Test search URL building
+                if (engines.length > 0) {
+                    const testQuery = 'test search';
+                    const testEngine = engines[0];
+                    const searchUrl = testEngine.url.replace('{query}', encodeURIComponent(testQuery));
+                    log(`✅ Test URL for ${testEngine.name}: ${searchUrl}`, 'success');
+                }
+                
+            } catch (error) {
+                log(`❌ Search engine test failed: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testModules = async function() {
+            log('🧩 Testing modules...', 'info');
+            
+            try {
+                if (!app) {
+                    throw new Error('App not initialized');
+                }
+                
+                const modules = Object.keys(app.modules);
+                log(`✅ Loaded modules: [${modules.join(', ')}]`, 'success');
+                
+                // Test each module
+                for (const moduleName of modules) {
+                    const module = app.modules[moduleName];
+                    if (module) {
+                        log(`   ✅ ${moduleName}: OK`, 'success');
+                    } else {
+                        log(`   ❌ ${moduleName}: MISSING`, 'error');
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ Module test failed: ${error.message}`, 'error');
+            }
+        };
+        
+        window.clearConsole = function() {
+            document.getElementById('console').innerHTML = '';
+            logs = [];
+        };
+        
+        window.exportLogs = function() {
+            const logText = logs.join('\n');
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `supersearch-debug-${new Date().toISOString().split('T')[0]}.log`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            log('📄 Logs exported', 'success');
+        };
+    </script>
+</body>
+</html>
