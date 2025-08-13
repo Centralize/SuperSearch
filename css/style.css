@@ -1,0 +1,504 @@
+/* SuperSearch Custom Styles */
+
+:root {
+    --primary-color: #4285f4;
+    --secondary-color: #34a853;
+    --accent-color: #ea4335;
+    --warning-color: #fbbc04;
+    --dark-color: #202124;
+    --light-color: #f8f9fa;
+    --border-color: #e8eaed;
+    --text-color: #3c4043;
+    --text-muted: #5f6368;
+    --shadow-light: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-medium: 0 4px 8px rgba(0,0,0,0.15);
+    --border-radius: 8px;
+    --transition: all 0.2s ease-in-out;
+}
+
+/* Base Styles */
+body {
+    font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text-color);
+    line-height: 1.6;
+    background-color: var(--light-color);
+}
+
+/* Typography Enhancements */
+.uk-heading-large {
+    color: var(--primary-color);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+}
+
+.uk-text-lead {
+    color: var(--text-muted);
+    font-weight: 300;
+}
+
+/* Navigation Styles */
+.uk-navbar-container {
+    background-color: white;
+    box-shadow: var(--shadow-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.uk-logo {
+    font-weight: 500;
+    color: var(--primary-color) !important;
+    font-size: 1.25rem;
+}
+
+/* Search Section */
+.search-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e8eaed 100%);
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-form .uk-input {
+    border-radius: var(--border-radius);
+    border: 2px solid var(--border-color);
+    font-size: 1.1rem;
+    padding: 12px 20px 12px 45px;
+    transition: var(--transition);
+    background-color: white;
+}
+
+.search-form .uk-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+    outline: none;
+}
+
+.search-form .uk-form-icon {
+    color: var(--text-muted);
+    left: 15px;
+}
+
+/* Engine Selection */
+.engine-selection {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: var(--shadow-light);
+    border: 1px solid var(--border-color);
+}
+
+.engine-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    background-color: white;
+    border: 1px solid var(--border-color);
+    margin: 4px;
+}
+
+.engine-checkbox:hover {
+    background-color: rgba(66, 133, 244, 0.05);
+    border-color: var(--primary-color);
+}
+
+.engine-checkbox input:checked + span {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Buttons */
+.uk-button-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    transition: var(--transition);
+    text-transform: none;
+}
+
+.uk-button-primary:hover {
+    background-color: #3367d6;
+    border-color: #3367d6;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-medium);
+}
+
+.uk-button-default {
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background-color: white;
+    color: var(--text-color);
+    transition: var(--transition);
+    text-transform: none;
+}
+
+.uk-button-default:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Results Section */
+.results-section {
+    background-color: white;
+    border-top: 1px solid var(--border-color);
+}
+
+.results-tabs .uk-tab {
+    border-bottom: 2px solid var(--border-color);
+}
+
+.results-tabs .uk-tab > li > a {
+    color: var(--text-muted);
+    border: none;
+    border-bottom: 3px solid transparent;
+    transition: var(--transition);
+    text-transform: none;
+}
+
+.results-tabs .uk-tab > li.uk-active > a {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background: none;
+}
+
+.results-tabs .uk-tab > li > a:hover {
+    color: var(--primary-color);
+}
+
+/* Loading Indicator */
+.loading-indicator {
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+.loading-indicator .uk-spinner > * {
+    border-left-color: var(--primary-color);
+}
+
+/* No Results */
+.no-results {
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+/* Modal Styles */
+.uk-modal-dialog {
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-medium);
+}
+
+.uk-modal-title {
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* Form Elements */
+.uk-input,
+.uk-select,
+.uk-textarea {
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.uk-input:focus,
+.uk-select:focus,
+.uk-textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
+    outline: none;
+}
+
+.uk-checkbox {
+    border-radius: 3px;
+    border-color: var(--border-color);
+}
+
+.uk-checkbox:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Engine List */
+.engines-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.engine-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.engine-item:hover {
+    background-color: rgba(66, 133, 244, 0.02);
+}
+
+.engine-item:last-child {
+    border-bottom: none;
+}
+
+.engine-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.engine-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 12px;
+    background-color: var(--light-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+}
+
+.engine-name {
+    font-weight: 500;
+    margin: 0;
+}
+
+.engine-url {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.engine-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* History List */
+.history-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.history-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.history-item:hover {
+    background-color: rgba(66, 133, 244, 0.02);
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-query {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.history-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Help Content */
+.help-content h3 {
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+    margin-top: 25px;
+}
+
+.help-content h3:first-child {
+    margin-top: 0;
+}
+
+.uk-description-list dt {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Footer */
+footer {
+    background-color: var(--dark-color);
+    color: white;
+}
+
+footer p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .search-section {
+        min-height: 50vh;
+        padding: 20px 0;
+    }
+    
+    .uk-heading-large {
+        font-size: 2rem;
+    }
+    
+    .quick-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .quick-actions .uk-button {
+        width: 200px;
+        margin: 4px 0;
+    }
+    
+    .engine-selection .uk-grid {
+        justify-content: center;
+    }
+    
+    .engine-checkbox {
+        margin: 8px 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .search-form .uk-input {
+        font-size: 1rem;
+        padding: 10px 15px 10px 40px;
+    }
+    
+    .engine-selection {
+        margin: 0 10px;
+        padding: 15px;
+    }
+    
+    .uk-modal-dialog {
+        margin: 20px;
+    }
+}
+
+/* Custom Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* Search Results Styling */
+.result-item {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 15px;
+    transition: var(--transition);
+}
+
+.result-item:hover {
+    box-shadow: var(--shadow-light);
+    transform: translateY(-1px);
+}
+
+.result-title {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-decoration: none;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.result-title:hover {
+    text-decoration: underline;
+}
+
+.result-url {
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.result-description {
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+/* Utility Classes */
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bg-gradient {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+.border-primary {
+    border-color: var(--primary-color) !important;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+/* Dark Mode Support (Optional) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --light-color: #202124;
+        --dark-color: #f8f9fa;
+        --text-color: #e8eaed;
+        --text-muted: #9aa0a6;
+        --border-color: #3c4043;
+    }
+    
+    body {
+        background-color: var(--light-color);
+        color: var(--text-color);
+    }
+    
+    .uk-navbar-container,
+    .engine-selection,
+    .uk-button-default,
+    .result-item {
+        background-color: #303134;
+        border-color: var(--border-color);
+    }
+    
+    .search-form .uk-input {
+        background-color: #303134;
+        border-color: var(--border-color);
+        color: var(--text-color);
+    }
+}

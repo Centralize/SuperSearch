@@ -1,0 +1,45 @@
+{
+    "version": "1.0",
+    "engines": [
+        {
+            "id": "google",
+            "name": "Google",
+            "url": "https://www.google.com/search?q={query}",
+            "icon": "assets/icons/google.png",
+            "color": "#4285f4",
+            "enabled": true,
+            "isDefault": true,
+            "sortOrder": 1
+        },
+        {
+            "id": "duckduckgo",
+            "name": "DuckDuckGo",
+            "url": "https://duckduckgo.com/?q={query}",
+            "icon": "assets/icons/duckduckgo.png",
+            "color": "#de5833",
+            "enabled": true,
+            "isDefault": false,
+            "sortOrder": 2
+        },
+        {
+            "id": "bing",
+            "name": "Bing",
+            "url": "https://www.bing.com/search?q={query}",
+            "icon": "assets/icons/bing.png",
+            "color": "#008373",
+            "enabled": true,
+            "isDefault": false,
+            "sortOrder": 3
+        }
+    ],
+    "preferences": {
+        "defaultEngine": "google",
+        "theme": "light",
+        "resultsPerPage": 10,
+        "openInNewTab": true,
+        "showPreviews": true,
+        "autoComplete": true,
+        "enableHistory": true,
+        "maxHistoryItems": 1000
+    }
+}

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SuperSearch - Multi-Engine Search Platform">
+    <meta name="keywords" content="search, multi-engine, google, duckduckgo, bing">
+    <meta name="author" content="SuperSearch Development Team">
+    <title>SuperSearch - Multi-Engine Search Platform</title>
+    
+    <!-- UIKit CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/css/uikit.min.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <!-- Main Navigation -->
+    <nav class="uk-navbar-container uk-margin" uk-navbar>
+        <div class="uk-navbar-left">
+            <a class="uk-navbar-item uk-logo" href="#" aria-label="SuperSearch Home">SuperSearch</a>
+        </div>
+        <div class="uk-navbar-right">
+            <ul class="uk-navbar-nav">
+                <li>
+                    <a href="#" id="settingsBtn" aria-label="Settings">
+                        <span uk-icon="settings"></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="historyBtn" aria-label="Search History">
+                        <span uk-icon="history"></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="helpBtn" aria-label="Help">
+                        <span uk-icon="question"></span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="uk-container uk-container-large">
+        <!-- Search Section -->
+        <section class="search-section uk-section uk-section-large" aria-label="Search">
+            <div class="uk-container uk-text-center">
+                <h1 class="uk-heading-large uk-margin-bottom">SuperSearch</h1>
+                <p class="uk-text-lead uk-margin-bottom">Search across multiple engines simultaneously</p>
+                
+                <!-- Search Form -->
+                <form class="search-form uk-margin-large" role="search">
+                    <div class="uk-inline uk-width-1-1 uk-width-2-3@m">
+                        <span class="uk-form-icon" uk-icon="icon: search"></span>
+                        <input 
+                            class="uk-input uk-form-large" 
+                            type="search" 
+                            id="searchInput"
+                            placeholder="Enter your search query..."
+                            autocomplete="off"
+                            aria-label="Search query"
+                            required>
+                    </div>
+                    
+                    <!-- Search Engines Selection -->
+                    <div class="engine-selection uk-margin-medium-top" role="group" aria-labelledby="engine-selection-label">
+                        <h2 id="engine-selection-label" class="uk-h4 uk-margin-small-bottom">Select Search Engines:</h2>
+                        <div class="uk-flex uk-flex-center uk-flex-wrap uk-child-width-auto uk-grid-small" uk-grid>
+                            <div>
+                                <label class="engine-checkbox">
+                                    <input class="uk-checkbox" type="checkbox" id="googleEngine" checked>
+                                    <span class="uk-margin-small-left">Google</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="engine-checkbox">
+                                    <input class="uk-checkbox" type="checkbox" id="duckduckgoEngine" checked>
+                                    <span class="uk-margin-small-left">DuckDuckGo</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="engine-checkbox">
+                                    <input class="uk-checkbox" type="checkbox" id="bingEngine" checked>
+                                    <span class="uk-margin-small-left">Bing</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Button -->
+                    <div class="uk-margin-medium-top">
+                        <button type="submit" class="uk-button uk-button-primary uk-button-large" id="searchBtn">
+                            <span uk-icon="search"></span>
+                            <span class="uk-margin-small-left">Search</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions uk-margin-medium-top">
+                    <button class="uk-button uk-button-default uk-margin-small-right" id="manageEnginesBtn">
+                        <span uk-icon="cog"></span>
+                        <span class="uk-margin-small-left">Manage Engines</span>
+                    </button>
+                    <button class="uk-button uk-button-default uk-margin-small-right" id="importConfigBtn">
+                        <span uk-icon="upload"></span>
+                        <span class="uk-margin-small-left">Import Config</span>
+                    </button>
+                    <button class="uk-button uk-button-default" id="exportConfigBtn">
+                        <span uk-icon="download"></span>
+                        <span class="uk-margin-small-left">Export Config</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section uk-section uk-section-default uk-hidden" id="resultsSection" aria-label="Search Results">
+            <div class="uk-container">
+                <h2 class="uk-h3 uk-margin-medium-bottom">Search Results</h2>
+                
+                <!-- Loading Indicator -->
+                <div class="loading-indicator uk-text-center uk-hidden" id="loadingIndicator">
+                    <div uk-spinner="ratio: 2"></div>
+                    <p class="uk-margin-small-top">Searching...</p>
+                </div>
+
+                <!-- Results Tabs -->
+                <div class="results-tabs">
+                    <ul class="uk-tab" uk-tab="connect: #results-content" id="resultsTabs" role="tablist">
+                        <!-- Tabs will be dynamically generated -->
+                    </ul>
+
+                    <!-- Results Content -->
+                    <div class="uk-switcher" id="results-content">
+                        <!-- Results will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- No Results Message -->
+                <div class="no-results uk-text-center uk-hidden" id="noResults">
+                    <span uk-icon="icon: info; ratio: 2"></span>
+                    <p class="uk-margin-small-top">No search engines selected or no results found.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="uk-section uk-section-secondary uk-margin-large-top">
+        <div class="uk-container uk-text-center">
+            <p class="uk-text-small uk-margin-remove">
+                &copy; 2024 SuperSearch. Built with HTML5, JavaScript, CSS3, UIKit & IndexedDB.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    
+    <!-- Settings Modal -->
+    <div id="settingsModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body">
+            <h2 class="uk-modal-title">Settings</h2>
+            <form class="settings-form">
+                <fieldset class="uk-fieldset">
+                    <legend class="uk-legend">General Preferences</legend>
+                    
+                    <div class="uk-margin">
+                        <label class="uk-form-label" for="defaultEngine">Default Search Engine</label>
+                        <select class="uk-select" id="defaultEngine">
+                            <option value="google">Google</option>
+                            <option value="duckduckgo">DuckDuckGo</option>
+                            <option value="bing">Bing</option>
+                        </select>
+                    </div>
+                    
+                    <div class="uk-margin">
+                        <label class="uk-form-label" for="resultsPerPage">Results Per Page</label>
+                        <input class="uk-input" type="number" id="resultsPerPage" min="5" max="50" value="10">
+                    </div>
+                    
+                    <div class="uk-margin">
+                        <label>
+                            <input class="uk-checkbox" type="checkbox" id="openInNewTab" checked>
+                            Open results in new tab
+                        </label>
+                    </div>
+                    
+                    <div class="uk-margin">
+                        <label>
+                            <input class="uk-checkbox" type="checkbox" id="enableHistory" checked>
+                            Enable search history
+                        </label>
+                    </div>
+                </fieldset>
+            </form>
+            
+            <p class="uk-text-right">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
+                <button class="uk-button uk-button-primary" type="button" id="saveSettings">Save Settings</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Manage Engines Modal -->
+    <div id="manageEnginesModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body">
+            <h2 class="uk-modal-title">Manage Search Engines</h2>
+            
+            <!-- Engine List -->
+            <div class="engines-list" id="enginesList">
+                <!-- Engine list will be dynamically generated -->
+            </div>
+            
+            <div class="uk-margin-medium-top">
+                <button class="uk-button uk-button-primary" id="addEngineBtn">
+                    <span uk-icon="plus"></span>
+                    <span class="uk-margin-small-left">Add Engine</span>
+                </button>
+            </div>
+            
+            <p class="uk-text-right uk-margin-medium-top">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Add/Edit Engine Modal -->
+    <div id="engineFormModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body">
+            <h2 class="uk-modal-title" id="engineFormTitle">Add Search Engine</h2>
+            
+            <form class="engine-form" id="engineForm">
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="engineName">Engine Name *</label>
+                    <input class="uk-input" type="text" id="engineName" required>
+                </div>
+                
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="engineUrl">Search URL Template *</label>
+                    <input class="uk-input" type="url" id="engineUrl" placeholder="https://example.com/search?q={query}" required>
+                    <div class="uk-text-small uk-text-muted">Use {query} as placeholder for search terms</div>
+                </div>
+                
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="engineIcon">Icon URL</label>
+                    <input class="uk-input" type="url" id="engineIcon" placeholder="https://example.com/icon.png">
+                </div>
+                
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="engineColor">Brand Color</label>
+                    <input class="uk-input" type="color" id="engineColor" value="#4285f4">
+                </div>
+                
+                <div class="uk-margin">
+                    <label>
+                        <input class="uk-checkbox" type="checkbox" id="engineEnabled" checked>
+                        Enable this search engine
+                    </label>
+                </div>
+            </form>
+            
+            <p class="uk-text-right">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
+                <button class="uk-button uk-button-primary" type="button" id="saveEngine">Save Engine</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body">
+            <h2 class="uk-modal-title">Search History</h2>
+            
+            <div class="history-list" id="historyList">
+                <!-- History will be dynamically generated -->
+            </div>
+            
+            <p class="uk-text-right">
+                <button class="uk-button uk-button-danger uk-margin-small-right" id="clearHistory">Clear History</button>
+                <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body">
+            <h2 class="uk-modal-title">Help & Keyboard Shortcuts</h2>
+            
+            <div class="help-content">
+                <h3 class="uk-h4">Getting Started</h3>
+                <ul class="uk-list uk-list-bullet">
+                    <li>Enter your search query in the search box</li>
+                    <li>Select which search engines to use</li>
+                    <li>Click Search or press Enter</li>
+                    <li>View results in separate tabs for each engine</li>
+                </ul>
+                
+                <h3 class="uk-h4">Keyboard Shortcuts</h3>
+                <dl class="uk-description-list">
+                    <dt>Enter</dt>
+                    <dd>Start search</dd>
+                    <dt>Escape</dt>
+                    <dd>Close modals</dd>
+                    <dt>Tab</dt>
+                    <dd>Navigate interface</dd>
+                </dl>
+                
+                <h3 class="uk-h4">Managing Search Engines</h3>
+                <ul class="uk-list uk-list-bullet">
+                    <li>Click "Manage Engines" to add, edit, or delete search engines</li>
+                    <li>Use Import/Export to backup your configuration</li>
+                    <li>Set a default engine in Settings</li>
+                </ul>
+            </div>
+            
+            <p class="uk-text-right">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- File Input for Import -->
+    <input type="file" id="importFileInput" accept=".json" class="uk-hidden">
+
+    <!-- UIKit JS -->
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit-icons.min.js"></script>
+    
+    <!-- Application JS Modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/dbManager.js"></script>
+    <script src="js/searchEngine.js"></script>
+    <script src="js/searchHandler.js"></script>
+    <script src="js/configManager.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
