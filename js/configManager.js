@@ -370,6 +370,348 @@ class ConfigManager {
     }
 
     /**
+     * Validate import data for integrity and compatibility
+     * @param {Object} importData - Import data to validate
+     * @returns {Object} Validation result
+     */
+    validateImportData(importData) {
+        const result = {
+            isValid: true,
+            errors: [],
+            warnings: [],
+            compatibility: {
+                version: true,
+                format: true,
+                features: true
+            }
+        };
+
+        // Check basic structure
+        if (!importData || typeof importData !== 'object') {
+            result.errors.push('Invalid configuration format');
+            result.isValid = false;
+            return result;
+        }
+
+        // Check version compatibility
+        if (importData.version) {
+            const importVersion = parseFloat(importData.version);
+            const currentVersion = parseFloat(this.configVersion);
+
+            if (importVersion > currentVersion) {
+                result.warnings.push(`Configuration is from a newer version (${importData.version})`);
+                result.compatibility.version = false;
+            } else if (importVersion < currentVersion - 1) {
+                result.warnings.push(`Configuration is from an older version (${importData.version})`);
+            }
+        } else {
+            result.warnings.push('No version information found in configuration');
+        }
+
+        // Validate engines if present
+        if (importData.engines) {
+            const engineValidation = this.validateEnginesData(importData.engines);
+            result.errors.push(...engineValidation.errors);
+            result.warnings.push(...engineValidation.warnings);
+            if (!engineValidation.isValid) {
+                result.isValid = false;
+            }
+        }
+
+        // Validate preferences if present
+        if (importData.preferences) {
+            const prefValidation = this.validatePreferencesData(importData.preferences);
+            result.warnings.push(...prefValidation.warnings);
+        }
+
+        // Validate history if present
+        if (importData.history) {
+            const historyValidation = this.validateHistoryData(importData.history);
+            result.warnings.push(...historyValidation.warnings);
+        }
+
+        // Check checksum if present
+        if (importData.validation && importData.validation.checksum) {
+            const checksumValid = this.verifyExportChecksum(importData);
+            if (!checksumValid) {
+                result.warnings.push('Configuration checksum verification failed - file may be corrupted');
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Validate engines data in import
+     * @param {Array} engines - Engines data
+     * @returns {Object} Validation result
+     */
+    validateEnginesData(engines) {
+        const result = {
+            isValid: true,
+            errors: [],
+            warnings: []
+        };
+
+        if (!Array.isArray(engines)) {
+            result.errors.push('Engines data must be an array');
+            result.isValid = false;
+            return result;
+        }
+
+        engines.forEach((engine, index) => {
+            const engineNum = index + 1;
+
+            // Required fields
+            if (!engine.name || typeof engine.name !== 'string') {
+                result.errors.push(`Engine ${engineNum}: Missing or invalid name`);
+                result.isValid = false;
+            }
+
+            if (!engine.url || typeof engine.url !== 'string') {
+                result.errors.push(`Engine ${engineNum}: Missing or invalid URL`);
+                result.isValid = false;
+            }
+
+            // URL validation
+            if (engine.url && !engine.url.includes('{query}')) {
+                result.warnings.push(`Engine "${engine.name}": URL may not contain {query} placeholder`);
+            }
+
+            // Optional field validation
+            if (engine.icon && typeof engine.icon !== 'string') {
+                result.warnings.push(`Engine "${engine.name}": Invalid icon URL format`);
+            }
+
+            if (engine.color && !/^#[0-9A-Fa-f]{6}$/.test(engine.color)) {
+                result.warnings.push(`Engine "${engine.name}": Invalid color format`);
+            }
+        });
+
+        // Check for duplicate names
+        const names = engines.map(e => e.name.toLowerCase());
+        const duplicates = names.filter((name, index) => names.indexOf(name) !== index);
+        if (duplicates.length > 0) {
+            result.warnings.push(`Duplicate engine names: ${[...new Set(duplicates)].join(', ')}`);
+        }
+
+        return result;
+    }
+
+    /**
+     * Validate preferences data in import
+     * @param {Object} preferences - Preferences data
+     * @returns {Object} Validation result
+     */
+    validatePreferencesData(preferences) {
+        const result = {
+            warnings: []
+        };
+
+        if (typeof preferences !== 'object') {
+            result.warnings.push('Preferences data is not an object');
+            return result;
+        }
+
+        // Validate specific preference fields
+        if (preferences.theme && !['light', 'dark', 'auto'].includes(preferences.theme)) {
+            result.warnings.push(`Unknown theme: ${preferences.theme}`);
+        }
+
+        if (preferences.activeEngines && !Array.isArray(preferences.activeEngines)) {
+            result.warnings.push('Active engines preference is not an array');
+        }
+
+        return result;
+    }
+
+    /**
+     * Validate history data in import
+     * @param {Array} history - History data
+     * @returns {Object} Validation result
+     */
+    validateHistoryData(history) {
+        const result = {
+            warnings: []
+        };
+
+        if (!Array.isArray(history)) {
+            result.warnings.push('History data is not an array');
+            return result;
+        }
+
+        // Check for required fields in history entries
+        const invalidEntries = history.filter(entry => !entry.query || !entry.timestamp);
+        if (invalidEntries.length > 0) {
+            result.warnings.push(`${invalidEntries.length} history entries missing required fields`);
+        }
+
+        // Check for very old entries
+        const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+        const oldEntries = history.filter(entry => entry.timestamp < oneYearAgo);
+        if (oldEntries.length > 0) {
+            result.warnings.push(`${oldEntries.length} history entries are over 1 year old`);
+        }
+
+        return result;
+    }
+
+    /**
+     * Import application configuration
+     * @param {Object} importData - Configuration data to import
+     * @param {Object} options - Import options
+     */
+    async importConfig(importData, options = {}) {
+        try {
+            // Validate import data first
+            const validation = this.validateImportData(importData);
+            if (!validation.isValid) {
+                throw new Error('Import validation failed: ' + validation.errors.join(', '));
+            }
+
+            // Show progress
+            console.log('Starting configuration import...');
+
+            // Handle replace mode
+            if (options.mode === 'replace') {
+                await this.clearExistingData(options);
+            }
+
+            // Import engines
+            if (options.includeEngines && importData.engines) {
+                await this.importEngines(importData.engines, options);
+            }
+
+            // Import preferences
+            if (options.includePreferences && importData.preferences) {
+                await this.importPreferences(importData.preferences, options);
+            }
+
+            // Import history
+            if (options.includeHistory && importData.history) {
+                await this.importHistory(importData.history, options);
+            }
+
+            console.log('Configuration import completed successfully');
+            return { success: true, imported: options };
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to import configuration');
+            throw error;
+        }
+    }
+
+    /**
+     * Clear existing data for replace mode
+     * @param {Object} options - Import options
+     */
+    async clearExistingData(options) {
+        if (options.includeEngines) {
+            // Clear all engines except built-in ones
+            const engines = await this.dbManager.getAllEngines();
+            const customEngines = engines.filter(e => !e.isBuiltIn);
+
+            for (const engine of customEngines) {
+                await this.dbManager.deleteEngine(engine.id);
+            }
+        }
+
+        if (options.includePreferences) {
+            // Reset preferences to defaults
+            await this.dbManager.clearPreferences();
+        }
+
+        if (options.includeHistory) {
+            // Clear search history
+            await this.dbManager.clearHistory();
+        }
+    }
+
+    /**
+     * Import engines
+     * @param {Array} engines - Engines to import
+     * @param {Object} options - Import options
+     */
+    async importEngines(engines, options) {
+        for (const engineData of engines) {
+            try {
+                // Check if engine already exists
+                const existing = await this.dbManager.getEngineByName(engineData.name);
+
+                if (existing && options.mode === 'merge') {
+                    // Skip existing engines in merge mode
+                    console.log(`Skipping existing engine: ${engineData.name}`);
+                    continue;
+                }
+
+                // Create new engine
+                const engine = {
+                    ...engineData,
+                    id: existing ? existing.id : Utils.generateId(),
+                    createdAt: existing ? existing.createdAt : new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                await this.dbManager.saveEngine(engine);
+                console.log(`Imported engine: ${engine.name}`);
+
+            } catch (error) {
+                console.warn(`Failed to import engine ${engineData.name}:`, error);
+            }
+        }
+    }
+
+    /**
+     * Import preferences
+     * @param {Object} preferences - Preferences to import
+     * @param {Object} options - Import options
+     */
+    async importPreferences(preferences, options) {
+        try {
+            if (options.mode === 'replace') {
+                // Replace all preferences
+                await this.dbManager.updatePreferences(preferences);
+            } else {
+                // Merge with existing preferences
+                const currentPrefs = await this.dbManager.getPreferences();
+                const mergedPrefs = { ...currentPrefs, ...preferences };
+                await this.dbManager.updatePreferences(mergedPrefs);
+            }
+
+            console.log('Imported preferences successfully');
+
+        } catch (error) {
+            console.warn('Failed to import preferences:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Import history
+     * @param {Array} history - History entries to import
+     * @param {Object} options - Import options
+     */
+    async importHistory(history, options) {
+        try {
+            if (options.mode === 'replace') {
+                // Clear existing history first
+                await this.dbManager.clearHistory();
+            }
+
+            // Add history entries
+            for (const entry of history) {
+                await this.dbManager.addHistoryEntry(entry);
+            }
+
+            console.log(`Imported ${history.length} history entries`);
+
+        } catch (error) {
+            console.warn('Failed to import history:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Import application configuration
      * @param {Object} config - Configuration data to import
      * @param {Object} options - Import options

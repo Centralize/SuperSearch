@@ -217,40 +217,193 @@
     <!-- Settings Modal -->
     <div id="settingsModal" uk-modal>
         <div class="uk-modal-dialog uk-modal-body">
-            <h2 class="uk-modal-title">Settings</h2>
-            <form class="settings-form">
-                <fieldset class="uk-fieldset">
-                    <legend class="uk-legend">General Preferences</legend>
-                    
-                    <div class="uk-margin">
-                        <label class="uk-form-label" for="defaultEngine">Default Search Engine</label>
-                        <select class="uk-select" id="defaultEngine">
-                            <option value="google">Google</option>
-                            <option value="duckduckgo">DuckDuckGo</option>
-                            <option value="bing">Bing</option>
-                        </select>
-                    </div>
-                    
-                    <div class="uk-margin">
-                        <label class="uk-form-label" for="resultsPerPage">Results Per Page</label>
-                        <input class="uk-input" type="number" id="resultsPerPage" min="5" max="50" value="10">
-                    </div>
-                    
-                    <div class="uk-margin">
-                        <label>
-                            <input class="uk-checkbox" type="checkbox" id="openInNewTab" checked>
-                            Open results in new tab
-                        </label>
-                    </div>
-                    
-                    <div class="uk-margin">
-                        <label>
-                            <input class="uk-checkbox" type="checkbox" id="enableHistory" checked>
-                            Enable search history
-                        </label>
-                    </div>
-                </fieldset>
-            </form>
+            <div class="modal-header">
+                <h2 class="uk-modal-title">
+                    <span uk-icon="settings" class="uk-text-primary uk-margin-small-right"></span>
+                    User Preferences
+                </h2>
+                <p class="uk-text-muted">Customize your SuperSearch experience</p>
+            </div>
+
+            <div class="settings-content">
+                <!-- Settings Categories Tabs -->
+                <ul class="uk-tab" uk-tab="connect: #settings-tabs">
+                    <li class="uk-active"><a href="#">Appearance</a></li>
+                    <li><a href="#">Search</a></li>
+                    <li><a href="#">Privacy</a></li>
+                    <li><a href="#">Advanced</a></li>
+                </ul>
+
+                <!-- Settings Tab Content -->
+                <ul id="settings-tabs" class="uk-switcher uk-margin">
+                    <!-- Appearance Settings -->
+                    <li class="settings-category">
+                        <div class="category-content">
+                            <h3 class="category-title">Appearance & Theme</h3>
+
+                            <div class="setting-group">
+                                <label class="setting-label" for="themeSelect">Theme</label>
+                                <select class="uk-select" id="themeSelect">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="auto">Auto (System)</option>
+                                </select>
+                                <div class="setting-description">Choose your preferred color scheme</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="enableAnimations" checked>
+                                    <span class="uk-margin-small-left">Enable animations</span>
+                                </label>
+                                <div class="setting-description">Smooth transitions and visual effects</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="compactMode">
+                                    <span class="uk-margin-small-left">Compact mode</span>
+                                </label>
+                                <div class="setting-description">Reduce spacing for more content on screen</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="showEngineIcons" checked>
+                                    <span class="uk-margin-small-left">Show engine icons</span>
+                                </label>
+                                <div class="setting-description">Display search engine icons in results</div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- Search Settings -->
+                    <li class="settings-category">
+                        <div class="category-content">
+                            <h3 class="category-title">Search Behavior</h3>
+
+                            <div class="setting-group">
+                                <label class="setting-label" for="resultsPerPage">Results per page</label>
+                                <select class="uk-select" id="resultsPerPage">
+                                    <option value="10">10 results</option>
+                                    <option value="20">20 results</option>
+                                    <option value="50">50 results</option>
+                                    <option value="100">100 results</option>
+                                </select>
+                                <div class="setting-description">Number of search results to display per page</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="openInNewTab" checked>
+                                    <span class="uk-margin-small-left">Open results in new tab</span>
+                                </label>
+                                <div class="setting-description">Open search results in a new browser tab</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="enableAutoComplete" checked>
+                                    <span class="uk-margin-small-left">Enable auto-complete</span>
+                                </label>
+                                <div class="setting-description">Show search suggestions as you type</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="instantSearch">
+                                    <span class="uk-margin-small-left">Instant search</span>
+                                </label>
+                                <div class="setting-description">Search automatically as you type (experimental)</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label" for="searchDelay">Search delay (ms)</label>
+                                <input class="uk-input" type="number" id="searchDelay" min="0" max="2000" step="100" value="300">
+                                <div class="setting-description">Delay before triggering instant search</div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- Privacy Settings -->
+                    <li class="settings-category">
+                        <div class="category-content">
+                            <h3 class="category-title">Privacy & Data</h3>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="enableHistory" checked>
+                                    <span class="uk-margin-small-left">Save search history</span>
+                                </label>
+                                <div class="setting-description">Keep a record of your searches for quick access</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label" for="historyLimit">History limit</label>
+                                <select class="uk-select" id="historyLimit">
+                                    <option value="50">50 entries</option>
+                                    <option value="100">100 entries</option>
+                                    <option value="500">500 entries</option>
+                                    <option value="1000">1000 entries</option>
+                                    <option value="unlimited">Unlimited</option>
+                                </select>
+                                <div class="setting-description">Maximum number of search history entries to keep</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="enableAnalytics">
+                                    <span class="uk-margin-small-left">Enable usage analytics</span>
+                                </label>
+                                <div class="setting-description">Help improve SuperSearch by sharing anonymous usage data</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="clearOnExit">
+                                    <span class="uk-margin-small-left">Clear data on exit</span>
+                                </label>
+                                <div class="setting-description">Automatically clear search history when closing the app</div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- Advanced Settings -->
+                    <li class="settings-category">
+                        <div class="category-content">
+                            <h3 class="category-title">Advanced Options</h3>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="enableDebugMode">
+                                    <span class="uk-margin-small-left">Debug mode</span>
+                                </label>
+                                <div class="setting-description">Enable detailed logging for troubleshooting</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label" for="cacheTimeout">Cache timeout (minutes)</label>
+                                <input class="uk-input" type="number" id="cacheTimeout" min="1" max="1440" value="60">
+                                <div class="setting-description">How long to cache search engine data</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label" for="requestTimeout">Request timeout (seconds)</label>
+                                <input class="uk-input" type="number" id="requestTimeout" min="5" max="60" value="10">
+                                <div class="setting-description">Maximum time to wait for search engine responses</div>
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input class="uk-checkbox" type="checkbox" id="enableKeyboardShortcuts" checked>
+                                    <span class="uk-margin-small-left">Keyboard shortcuts</span>
+                                </label>
+                                <div class="setting-description">Enable keyboard shortcuts for faster navigation</div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
             
             <!-- Configuration Management -->
             <div class="uk-margin-medium-top">
@@ -277,10 +430,11 @@
                 </div>
             </div>
 
-            <p class="uk-text-right uk-margin-medium-top">
+            <div class="uk-modal-footer uk-text-right">
                 <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
+                <button class="uk-button uk-button-secondary" type="button" id="resetSettingsBtn">Reset to Defaults</button>
                 <button class="uk-button uk-button-primary" type="button" id="saveSettings">Save Settings</button>
-            </p>
+            </div>
         </div>
     </div>
 
@@ -470,19 +624,85 @@
         </div>
     </div>
 
-    <!-- History Modal -->
+    <!-- Enhanced Search History Modal -->
     <div id="historyModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body">
-            <h2 class="uk-modal-title">Search History</h2>
-            
-            <div class="history-list" id="historyList">
-                <!-- History will be dynamically generated -->
+        <div class="uk-modal-dialog uk-modal-body uk-width-large">
+            <div class="modal-header">
+                <h2 class="uk-modal-title">
+                    <span uk-icon="history" class="uk-text-primary uk-margin-small-right"></span>
+                    Search History
+                </h2>
+                <p class="uk-text-muted">View and manage your search history</p>
             </div>
-            
-            <p class="uk-text-right">
-                <button class="uk-button uk-button-danger uk-margin-small-right" id="clearHistory">Clear History</button>
+
+            <div class="history-content">
+                <!-- History Controls -->
+                <div class="history-controls">
+                    <div class="uk-grid-small uk-flex-middle" uk-grid>
+                        <div class="uk-width-expand">
+                            <div class="uk-search uk-search-default">
+                                <span uk-search-icon></span>
+                                <input class="uk-search-input" type="search" id="historySearch" placeholder="Search history...">
+                            </div>
+                        </div>
+                        <div class="uk-width-auto">
+                            <button class="uk-button uk-button-default uk-button-small" type="button" id="clearAllHistoryBtn">
+                                <span uk-icon="trash" class="uk-margin-small-right"></span>Clear All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Filters -->
+                <div class="history-filters">
+                    <div class="uk-grid-small uk-child-width-auto" uk-grid>
+                        <div>
+                            <select class="uk-select uk-form-small" id="historyTimeFilter">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select class="uk-select uk-form-small" id="historyEngineFilter">
+                                <option value="all">All Engines</option>
+                                <!-- Engine options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div>
+                            <select class="uk-select uk-form-small" id="historySortOrder">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="frequency">Most Frequent</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History List -->
+                <div class="history-list-container">
+                    <div id="historyList" class="history-list">
+                        <!-- History entries will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="historyEmptyState" class="history-empty-state">
+                        <div class="empty-state-content">
+                            <span uk-icon="history" class="empty-state-icon"></span>
+                            <h3>No Search History</h3>
+                            <p>Your search history will appear here as you use SuperSearch.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="uk-modal-footer uk-text-right">
                 <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
-            </p>
+                <button class="uk-button uk-button-secondary" type="button" id="exportHistoryBtn">
+                    <span uk-icon="download" class="uk-margin-small-right"></span>Export History
+                </button>
+            </div>
         </div>
     </div>
 
@@ -625,6 +845,356 @@
                 </button>
                 <button id="downloadExportBtn" class="uk-button uk-button-primary" type="button">
                     <span uk-icon="download" class="uk-margin-small-right"></span>Download Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Configuration Modal -->
+    <div id="importConfigModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body uk-width-large">
+            <div class="modal-header">
+                <h2 class="uk-modal-title">
+                    <span uk-icon="upload" class="uk-text-primary uk-margin-small-right"></span>
+                    Import Configuration
+                </h2>
+                <p class="uk-text-muted">Import search engines and settings from a configuration file</p>
+            </div>
+
+            <div class="import-configuration-content">
+                <!-- File Upload Section -->
+                <div class="import-upload-section">
+                    <h3 class="uk-h4">Select Configuration File</h3>
+
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <div class="upload-dropzone" id="uploadDropzone">
+                            <div class="dropzone-content">
+                                <span uk-icon="cloud-upload" class="dropzone-icon"></span>
+                                <h4>Drop your configuration file here</h4>
+                                <p>or <a href="#" id="browseFileBtn" class="uk-link">browse to select a file</a></p>
+                                <div class="uk-text-small uk-text-muted">
+                                    Supports: .json files up to 10MB
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="file" id="configFileInput" accept=".json" style="display: none;">
+
+                        <!-- File Info Display -->
+                        <div id="fileInfo" class="file-info-card" style="display: none;">
+                            <div class="file-details">
+                                <div class="file-icon">
+                                    <span uk-icon="file-text"></span>
+                                </div>
+                                <div class="file-metadata">
+                                    <div class="file-name" id="fileName"></div>
+                                    <div class="file-stats" id="fileStats"></div>
+                                </div>
+                                <div class="file-actions">
+                                    <button class="uk-button uk-button-small uk-button-default" id="removeFileBtn">
+                                        <span uk-icon="close"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Import Options Section -->
+                <div class="import-options-section" id="importOptionsSection" style="display: none;">
+                    <h3 class="uk-h4">Import Options</h3>
+
+                    <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
+                        <div>
+                            <div class="import-option-card">
+                                <h4>Import Mode</h4>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-radio" type="radio" name="importMode" value="merge" checked>
+                                        <span class="uk-margin-small-left">Merge with existing</span>
+                                        <div class="uk-text-small uk-text-muted">Add new items, keep existing ones</div>
+                                    </label>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-radio" type="radio" name="importMode" value="replace">
+                                        <span class="uk-margin-small-left">Replace existing</span>
+                                        <div class="uk-text-small uk-text-muted">Remove all current data first</div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="import-option-card">
+                                <h4>What to Import</h4>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="importEngines" checked>
+                                        <span class="uk-margin-small-left">Search Engines</span>
+                                    </label>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="importPreferences" checked>
+                                        <span class="uk-margin-small-left">Preferences</span>
+                                    </label>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="importHistory">
+                                        <span class="uk-margin-small-left">Search History</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Import Preview Section -->
+                <div class="import-preview-section" id="importPreviewSection" style="display: none;">
+                    <h3 class="uk-h4">Import Preview</h3>
+                    <div id="importPreview" class="import-preview-container">
+                        <!-- Preview content will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Import Summary Section -->
+                <div class="import-summary-section" id="importSummarySection" style="display: none;">
+                    <div id="importSummary" class="import-summary-card">
+                        <!-- Summary will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="uk-modal-footer uk-text-right">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">
+                    <span uk-icon="close" class="uk-margin-small-right"></span>Cancel
+                </button>
+                <button id="validateImportBtn" class="uk-button uk-button-secondary" type="button" style="display: none;">
+                    <span uk-icon="check" class="uk-margin-small-right"></span>Validate
+                </button>
+                <button id="previewImportBtn" class="uk-button uk-button-secondary" type="button" style="display: none;">
+                    <span uk-icon="search" class="uk-margin-small-right"></span>Preview Changes
+                </button>
+                <button id="applyImportBtn" class="uk-button uk-button-primary" type="button" style="display: none;">
+                    <span uk-icon="upload" class="uk-margin-small-right"></span>Apply Import
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Configuration Modal -->
+    <div id="importConfigModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body uk-width-large">
+            <div class="modal-header">
+                <h2 class="uk-modal-title">
+                    <span uk-icon="upload" class="uk-text-primary uk-margin-small-right"></span>
+                    Import Configuration
+                </h2>
+                <p class="uk-text-muted">Import search engines and settings from a configuration file</p>
+            </div>
+
+            <div class="import-configuration-content">
+                <!-- File Upload Section -->
+                <div class="import-upload-section">
+                    <h3 class="uk-h4">Select Configuration File</h3>
+
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <div class="upload-dropzone" id="uploadDropzone">
+                            <div class="dropzone-content">
+                                <span uk-icon="cloud-upload" class="dropzone-icon"></span>
+                                <h4>Drop your configuration file here</h4>
+                                <p>or <a href="#" id="browseFileBtn" class="uk-link">browse to select a file</a></p>
+                                <div class="uk-text-small uk-text-muted">
+                                    Supports: .json files up to 10MB
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="file" id="configFileInput" accept=".json" style="display: none;">
+
+                        <!-- File Info Display -->
+                        <div id="fileInfo" class="file-info-card" style="display: none;">
+                            <div class="file-details">
+                                <div class="file-icon">
+                                    <span uk-icon="file-text"></span>
+                                </div>
+                                <div class="file-metadata">
+                                    <div class="file-name" id="fileName"></div>
+                                    <div class="file-stats" id="fileStats"></div>
+                                </div>
+                                <div class="file-actions">
+                                    <button class="uk-button uk-button-small uk-button-default" id="removeFileBtn">
+                                        <span uk-icon="close"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Import Options Section -->
+                <div class="import-options-section" id="importOptionsSection" style="display: none;">
+                    <h3 class="uk-h4">Import Options</h3>
+
+                    <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
+                        <div>
+                            <div class="import-option-card">
+                                <h4>Import Mode</h4>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-radio" type="radio" name="importMode" value="merge" checked>
+                                        <span class="uk-margin-small-left">Merge with existing</span>
+                                        <div class="uk-text-small uk-text-muted">Add new items, keep existing ones</div>
+                                    </label>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-radio" type="radio" name="importMode" value="replace">
+                                        <span class="uk-margin-small-left">Replace existing</span>
+                                        <div class="uk-text-small uk-text-muted">Remove all current data first</div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="import-option-card">
+                                <h4>What to Import</h4>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="importEngines" checked>
+                                        <span class="uk-margin-small-left">Search Engines</span>
+                                    </label>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="importPreferences" checked>
+                                        <span class="uk-margin-small-left">Preferences</span>
+                                    </label>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="importHistory">
+                                        <span class="uk-margin-small-left">Search History</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Import Preview Section -->
+                <div class="import-preview-section" id="importPreviewSection" style="display: none;">
+                    <h3 class="uk-h4">Import Preview</h3>
+                    <div id="importPreview" class="import-preview-container">
+                        <!-- Preview content will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Import Summary Section -->
+                <div class="import-summary-section" id="importSummarySection" style="display: none;">
+                    <div id="importSummary" class="import-summary-card">
+                        <!-- Summary will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="uk-modal-footer uk-text-right">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">
+                    <span uk-icon="close" class="uk-margin-small-right"></span>Cancel
+                </button>
+                <button id="validateImportBtn" class="uk-button uk-button-secondary" type="button" style="display: none;">
+                    <span uk-icon="check" class="uk-margin-small-right"></span>Validate
+                </button>
+                <button id="previewImportBtn" class="uk-button uk-button-secondary" type="button" style="display: none;">
+                    <span uk-icon="search" class="uk-margin-small-right"></span>Preview Changes
+                </button>
+                <button id="applyImportBtn" class="uk-button uk-button-primary" type="button" style="display: none;">
+                    <span uk-icon="upload" class="uk-margin-small-right"></span>Apply Import
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search History Modal -->
+    <div id="historyModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body uk-width-large">
+            <div class="modal-header">
+                <h2 class="uk-modal-title">
+                    <span uk-icon="history" class="uk-text-primary uk-margin-small-right"></span>
+                    Search History
+                </h2>
+                <p class="uk-text-muted">View and manage your search history</p>
+            </div>
+
+            <div class="history-content">
+                <!-- History Controls -->
+                <div class="history-controls">
+                    <div class="uk-grid-small uk-flex-middle" uk-grid>
+                        <div class="uk-width-expand">
+                            <div class="uk-search uk-search-default">
+                                <span uk-search-icon></span>
+                                <input class="uk-search-input" type="search" id="historySearch" placeholder="Search history...">
+                            </div>
+                        </div>
+                        <div class="uk-width-auto">
+                            <button class="uk-button uk-button-default uk-button-small" id="clearHistoryBtn">
+                                <span uk-icon="trash" class="uk-margin-small-right"></span>Clear All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Filters -->
+                <div class="history-filters">
+                    <div class="uk-grid-small uk-child-width-auto" uk-grid>
+                        <div>
+                            <select class="uk-select uk-form-small" id="historyTimeFilter">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select class="uk-select uk-form-small" id="historyEngineFilter">
+                                <option value="all">All Engines</option>
+                                <!-- Engine options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div>
+                            <select class="uk-select uk-form-small" id="historySortOrder">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="frequency">Most Frequent</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History List -->
+                <div class="history-list-container">
+                    <div id="historyList" class="history-list">
+                        <!-- History entries will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="historyEmptyState" class="history-empty-state" style="display: none;">
+                        <div class="empty-state-content">
+                            <span uk-icon="history" class="empty-state-icon"></span>
+                            <h3>No Search History</h3>
+                            <p>Your search history will appear here as you use SuperSearch.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="uk-modal-footer uk-text-right">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
+                <button class="uk-button uk-button-secondary" type="button" id="exportHistoryBtn">
+                    <span uk-icon="download" class="uk-margin-small-right"></span>Export History
                 </button>
             </div>
         </div>
