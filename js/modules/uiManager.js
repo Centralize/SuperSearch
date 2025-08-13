@@ -226,6 +226,7 @@ export class UIManager {
      */
     handleSettingsClick(event) {
         event.preventDefault();
+        this.setupSettingsModal();
         this.showModal('settings');
     }
 
@@ -242,6 +243,7 @@ export class UIManager {
      */
     handleHelpClick(event) {
         event.preventDefault();
+        this.setupHelpModal();
         this.showModal('help');
     }
 
@@ -864,6 +866,124 @@ export class UIManager {
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Set up the settings modal with content
+     */
+    setupSettingsModal() {
+        const settingsContent = document.getElementById('settings-content');
+        if (!settingsContent) return;
+
+        const preferences = this.modules.config.getAllPreferences();
+
+        settingsContent.innerHTML = `
+            <form id="settings-form">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Search Preferences</h5>
+
+                        <div class="mb-3">
+                            <label for="defaultSearchMode" class="form-label">Default Search Mode</label>
+                            <select class="form-select" id="defaultSearchMode" name="defaultSearchMode">
+                                <option value="selected" ${preferences.defaultSearchMode === 'selected' ? 'selected' : ''}>Selected Engines Only</option>
+                                <option value="all" ${preferences.defaultSearchMode === 'all' ? 'selected' : ''}>All Active Engines</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="openInNewTab" name="openInNewTab" ${preferences.openInNewTab ? 'checked' : ''}>
+                                <label class="form-check-label" for="openInNewTab">
+                                    Open search results in new tabs
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="autoSelectEngines" name="autoSelectEngines" ${preferences.autoSelectEngines ? 'checked' : ''}>
+                                <label class="form-check-label" for="autoSelectEngines">
+                                    Auto-select active engines on page load
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5>History & Privacy</h5>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enableHistory" name="enableHistory" ${preferences.enableHistory ? 'checked' : ''}>
+                                <label class="form-check-label" for="enableHistory">
+                                    Enable search history
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="maxHistoryItems" class="form-label">Maximum history items</label>
+                            <input type="number" class="form-control" id="maxHistoryItems" name="maxHistoryItems"
+                                   value="${preferences.maxHistoryItems}" min="10" max="1000" step="10">
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showNotifications" name="showNotifications" ${preferences.showNotifications ? 'checked' : ''}>
+                                <label class="form-check-label" for="showNotifications">
+                                    Show notifications
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirmDeletion" name="confirmDeletion" ${preferences.confirmDeletion ? 'checked' : ''}>
+                                <label class="form-check-label" for="confirmDeletion">
+                                    Confirm before deleting engines
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-12">
+                        <h5>Data Management</h5>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-primary" id="export-config-btn">
+                                <i class="bi bi-download me-1"></i>
+                                Export Configuration
+                            </button>
+
+                            <button type="button" class="btn btn-outline-secondary" id="import-config-btn">
+                                <i class="bi bi-upload me-1"></i>
+                                Import Configuration
+                            </button>
+
+                            <button type="button" class="btn btn-outline-warning" id="reset-settings-btn">
+                                <i class="bi bi-arrow-clockwise me-1"></i>
+                                Reset to Defaults
+                            </button>
+
+                            <button type="button" class="btn btn-outline-danger" id="clear-data-btn">
+                                <i class="bi bi-trash me-1"></i>
+                                Clear All Data
+                            </button>
+                        </div>
+
+                        <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                    </div>
+                </div>
+            </form>
+        `;
+
+        // Set up event listeners for settings
+        this.setupSettingsEventListeners();
     }
 
     /**

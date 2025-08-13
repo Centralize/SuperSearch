@@ -326,25 +326,104 @@ footer {
    Responsive Design Enhancements
    ======================================== */
 @media (max-width: 768px) {
-    .uk-logo {
+    .navbar-brand {
         font-size: 1.2rem;
     }
-    
-    #search-form {
-        margin: 0 var(--spacing-md);
-    }
-    
-    .uk-search-input {
+
+    .form-control-lg {
         font-size: 1rem;
         padding: var(--spacing-sm) var(--spacing-md);
     }
-    
+
     .engine-item {
-        padding: var(--spacing-xs) var(--spacing-sm);
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-xs);
+        flex-direction: column;
+        align-items: flex-start;
     }
-    
+
+    .engine-item .d-flex {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .engine-actions {
+        margin-top: var(--spacing-xs);
+        margin-left: 0 !important;
+    }
+
     .engine-name {
         font-size: 0.9rem;
+    }
+
+    .btn-lg {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 1rem;
+    }
+
+    .modal-dialog {
+        margin: var(--spacing-sm);
+    }
+
+    .toast {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding-left: var(--spacing-sm);
+        padding-right: var(--spacing-sm);
+    }
+
+    .display-4 {
+        font-size: 1.8rem;
+    }
+
+    .engine-list {
+        gap: var(--spacing-xs) !important;
+    }
+
+    .engine-item {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .btn-group-vertical .btn {
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .navbar-nav {
+        flex-direction: row;
+    }
+
+    .nav-tabs .nav-link {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: 0.9rem;
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .engine-item {
+        min-height: 48px;
+        padding: var(--spacing-md);
+    }
+
+    .form-control {
+        min-height: 48px;
+    }
+
+    .nav-link {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 }
 
@@ -376,6 +455,127 @@ footer {
 }
 
 /* ========================================
+   Animations and Visual Polish
+   ======================================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200px 0;
+    }
+    100% {
+        background-position: calc(200px + 100%) 0;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in-up {
+    animation: slideInUp 0.4s ease-out;
+}
+
+.pulse-on-hover:hover {
+    animation: pulse 0.6s ease-in-out;
+}
+
+.shimmer-loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* ========================================
+   Enhanced Engine Items
+   ======================================== */
+.engine-item {
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.engine-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left var(--transition-normal);
+}
+
+.engine-item:hover::before {
+    left: 100%;
+}
+
+.engine-item.active {
+    box-shadow: 0 0 0 2px var(--primary-color), var(--shadow-md);
+    transform: scale(1.02);
+}
+
+.engine-item.default {
+    box-shadow: 0 0 0 2px var(--secondary-color), var(--shadow-md);
+}
+
+/* ========================================
+   Loading States Enhancement
+   ======================================== */
+.spinner-border {
+    animation-duration: 0.8s;
+}
+
+.loading-dots::after {
+    content: '';
+    animation: loadingDots 1.5s infinite;
+}
+
+@keyframes loadingDots {
+    0%, 20% {
+        content: '.';
+    }
+    40% {
+        content: '..';
+    }
+    60%, 100% {
+        content: '...';
+    }
+}
+
+/* ========================================
    Utility Classes
    ======================================== */
 .text-gradient {
@@ -398,4 +598,59 @@ footer {
 
 .hover-lift:hover {
     transform: translateY(-2px);
+}
+
+.shadow-hover {
+    transition: box-shadow var(--transition-fast);
+}
+
+.shadow-hover:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.scale-on-hover {
+    transition: transform var(--transition-fast);
+}
+
+.scale-on-hover:hover {
+    transform: scale(1.05);
+}
+
+/* ========================================
+   Focus Indicators
+   ======================================== */
+.focus-ring:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(30, 135, 240, 0.1);
+}
+
+/* ========================================
+   Status Indicators
+   ======================================== */
+.status-indicator {
+    position: relative;
+}
+
+.status-indicator::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.status-indicator.online::after {
+    background-color: var(--success-color);
+}
+
+.status-indicator.offline::after {
+    background-color: var(--danger-color);
+}
+
+.status-indicator.warning::after {
+    background-color: var(--warning-color);
 }
