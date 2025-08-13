@@ -90,7 +90,7 @@ class SuperSearchApp {
         await this.modules.searchEngine.init();
         
         // Initialize Search Handler
-        this.modules.search = new SearchHandler(this.modules.searchEngine);
+        this.modules.search = new SearchHandler(this.modules.searchEngine, this.modules.database);
         
         // Initialize Config Manager
         this.modules.config = new ConfigManager(this.modules.database);

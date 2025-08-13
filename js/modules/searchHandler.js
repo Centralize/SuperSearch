@@ -9,8 +9,9 @@
  */
 
 export class SearchHandler {
-    constructor(searchEngineManager) {
+    constructor(searchEngineManager, database = null) {
         this.searchEngineManager = searchEngineManager;
+        this.database = database || (searchEngineManager ? searchEngineManager.database : null);
         this.activeSearches = new Map();
         this.searchTimeout = 10000; // 10 seconds timeout
     }
@@ -144,10 +145,12 @@ export class SearchHandler {
         }
 
         if (!engine.name) {
+            console.error('Invalid engine object:', engine);
             throw new Error('Engine missing name property');
         }
 
         if (!engine.url) {
+            console.error('Engine missing URL:', engine);
             throw new Error(`Engine ${engine.name} has no URL template`);
         }
 

@@ -551,7 +551,30 @@ export class UIManager {
 
         this.elements.engineList.innerHTML = '';
 
-        engines.forEach(engine => {
+        if (!engines || engines.length === 0) {
+            this.elements.engineList.innerHTML = '<p class="text-muted">No search engines available</p>';
+            return;
+        }
+
+        // Validate and filter engines
+        const validEngines = engines.filter(engine => {
+            if (!engine || typeof engine !== 'object') {
+                console.warn('UIManager: Invalid engine object:', engine);
+                return false;
+            }
+            if (!engine.id || !engine.name || !engine.url) {
+                console.warn('UIManager: Engine missing required properties:', engine);
+                return false;
+            }
+            return true;
+        });
+
+        if (validEngines.length === 0) {
+            this.elements.engineList.innerHTML = '<p class="text-warning">No valid search engines found</p>';
+            return;
+        }
+
+        validEngines.forEach(engine => {
             const engineElement = this.createEngineElement(engine);
             this.elements.engineList.appendChild(engineElement);
         });
@@ -1469,7 +1492,22 @@ export class UIManager {
         const modalElement = document.getElementById(modalId);
 
         if (modalElement && typeof bootstrap !== 'undefined') {
-            const modal = new bootstrap.Modal(modalElement);
+            const modal = new bootstrap.Modal(modalElement, {
+                focus: true,
+                keyboard: true
+            });
+
+            // Handle focus management to avoid ARIA warnings
+            modalElement.addEventListener('shown.bs.modal', () => {
+                // Focus the first focusable element in the modal
+                const focusableElements = modalElement.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                if (focusableElements.length > 0) {
+                    focusableElements[0].focus();
+                }
+            });
+
             modal.show();
             console.log(`📱 UIManager: Showing modal: ${modalId}`);
         } else {
