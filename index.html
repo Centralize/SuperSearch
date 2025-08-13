@@ -18,31 +18,84 @@
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 </head>
 <body>
-    <!-- Main Navigation -->
+    <!-- Enhanced Mobile-First Navigation -->
     <nav class="uk-navbar-container uk-margin" uk-navbar>
         <div class="uk-navbar-left">
-            <a class="uk-navbar-item uk-logo" href="#" aria-label="SuperSearch Home">SuperSearch</a>
+            <a class="uk-navbar-item uk-logo" href="#" aria-label="SuperSearch Home">
+                <span class="logo-icon" uk-icon="search"></span>
+                <span class="logo-text">SuperSearch</span>
+            </a>
         </div>
+
         <div class="uk-navbar-right">
-            <ul class="uk-navbar-nav">
-                <li>
-                    <a href="#" id="settingsBtn" aria-label="Settings">
-                        <span uk-icon="settings"></span>
-                    </a>
-                </li>
+            <!-- Mobile Menu Toggle -->
+            <a class="uk-navbar-toggle uk-hidden@m mobile-menu-toggle" href="#" uk-toggle="target: #mobile-menu" aria-label="Open Menu">
+                <span uk-navbar-toggle-icon></span>
+            </a>
+
+            <!-- Desktop Navigation -->
+            <ul class="uk-navbar-nav uk-visible@m">
                 <li>
                     <a href="#" id="historyBtn" aria-label="Search History">
                         <span uk-icon="history"></span>
+                        <span class="nav-text uk-visible@l">History</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="settingsBtn" aria-label="Settings">
+                        <span uk-icon="settings"></span>
+                        <span class="nav-text uk-visible@l">Settings</span>
                     </a>
                 </li>
                 <li>
                     <a href="#" id="helpBtn" aria-label="Help">
                         <span uk-icon="question"></span>
+                        <span class="nav-text uk-visible@l">Help</span>
                     </a>
                 </li>
             </ul>
         </div>
     </nav>
+
+    <!-- Mobile Navigation Menu -->
+    <div id="mobile-menu" class="mobile-nav-menu" uk-offcanvas="mode: slide; overlay: true">
+        <div class="uk-offcanvas-bar">
+            <div class="mobile-nav-header">
+                <h3>Menu</h3>
+                <button class="uk-offcanvas-close" type="button" uk-close aria-label="Close Menu"></button>
+            </div>
+
+            <ul class="mobile-nav-list">
+                <li>
+                    <a href="#" id="mobileHistoryBtn" class="mobile-nav-item">
+                        <span uk-icon="history" class="mobile-nav-icon"></span>
+                        <span class="mobile-nav-text">Search History</span>
+                        <span uk-icon="chevron-right" class="mobile-nav-arrow"></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="mobileSettingsBtn" class="mobile-nav-item">
+                        <span uk-icon="settings" class="mobile-nav-icon"></span>
+                        <span class="mobile-nav-text">Settings</span>
+                        <span uk-icon="chevron-right" class="mobile-nav-arrow"></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="mobileHelpBtn" class="mobile-nav-item">
+                        <span uk-icon="question" class="mobile-nav-icon"></span>
+                        <span class="mobile-nav-text">Help & Support</span>
+                        <span uk-icon="chevron-right" class="mobile-nav-arrow"></span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="mobile-nav-footer">
+                <div class="uk-text-small uk-text-muted uk-text-center">
+                    SuperSearch v1.0
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Container -->
     <main class="uk-container uk-container-large">
