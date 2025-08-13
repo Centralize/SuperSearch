@@ -1,0 +1,89 @@
+{
+  "name": "supersearch",
+  "version": "1.0.0",
+  "description": "A powerful search engine aggregator for searching multiple engines simultaneously",
+  "main": "index.html",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "npx http-server . -p 8080 -c-1",
+    "test": "npx playwright test",
+    "lint": "npx eslint js/ --ext .js",
+    "format": "npx prettier --write js/ css/ *.html",
+    "minify-css": "npx cssnano css/style.css css/style.min.css",
+    "minify-js": "npx terser js/app.js -o js/app.min.js -c -m",
+    "optimize-images": "npx imagemin images/*.png --out-dir=images/optimized",
+    "validate-html": "npx html-validate index.html",
+    "lighthouse": "npx lighthouse http://localhost:8080 --output=html --output-path=./lighthouse-report.html",
+    "deploy-netlify": "npx netlify deploy --prod --dir=dist",
+    "deploy-vercel": "npx vercel --prod dist",
+    "deploy-surge": "npx surge dist supersearch.surge.sh"
+  },
+  "keywords": [
+    "search",
+    "search-engine",
+    "aggregator",
+    "multi-search",
+    "web-app",
+    "javascript",
+    "html5",
+    "css3",
+    "uikit",
+    "indexeddb"
+  ],
+  "author": "SuperSearch Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Centralize/SuperSearch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Centralize/SuperSearch/issues"
+  },
+  "homepage": "https://github.com/Centralize/SuperSearch#readme",
+  "devDependencies": {
+    "cssnano": "^6.0.1",
+    "terser": "^5.19.2",
+    "imagemin": "^8.0.1",
+    "imagemin-pngquant": "^9.0.2",
+    "imagemin-mozjpeg": "^10.0.0",
+    "html-validate": "^8.2.0",
+    "eslint": "^8.45.0",
+    "prettier": "^3.0.0",
+    "lighthouse": "^10.4.0",
+    "http-server": "^14.1.1",
+    "playwright": "^1.36.2",
+    "netlify-cli": "^15.8.0",
+    "vercel": "^31.2.3",
+    "surge": "^0.23.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "browserslist": [
+    "Chrome >= 80",
+    "Firefox >= 75",
+    "Safari >= 13",
+    "Edge >= 80"
+  ],
+  "files": [
+    "index.html",
+    "css/",
+    "js/",
+    "images/",
+    "docs/",
+    "favicon.ico"
+  ],
+  "config": {
+    "build": {
+      "minify": true,
+      "optimize": true,
+      "sourceMaps": false
+    },
+    "deploy": {
+      "target": "static",
+      "compression": true,
+      "caching": true
+    }
+  }
+}

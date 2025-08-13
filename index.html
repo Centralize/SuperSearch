@@ -1253,41 +1253,136 @@
         </div>
     </div>
 
-    <!-- Help Modal -->
+    <!-- Enhanced Help Modal -->
     <div id="helpModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body">
-            <h2 class="uk-modal-title">Help & Keyboard Shortcuts</h2>
-            
+        <div class="uk-modal-dialog uk-modal-body uk-width-large">
+            <div class="modal-header">
+                <h2 class="uk-modal-title">Help & Support</h2>
+                <button class="uk-modal-close-default" type="button" uk-close></button>
+            </div>
+
             <div class="help-content">
-                <h3 class="uk-h4">Getting Started</h3>
-                <ul class="uk-list uk-list-bullet">
-                    <li>Enter your search query in the search box</li>
-                    <li>Select which search engines to use</li>
-                    <li>Click Search or press Enter</li>
-                    <li>View results in separate tabs for each engine</li>
+                <!-- Help Navigation Tabs -->
+                <ul class="uk-tab" uk-tab>
+                    <li class="uk-active"><a href="#">Quick Start</a></li>
+                    <li><a href="#">Shortcuts</a></li>
+                    <li><a href="#">FAQ</a></li>
                 </ul>
-                
-                <h3 class="uk-h4">Keyboard Shortcuts</h3>
-                <dl class="uk-description-list">
-                    <dt>Enter</dt>
-                    <dd>Start search</dd>
-                    <dt>Escape</dt>
-                    <dd>Close modals</dd>
-                    <dt>Tab</dt>
-                    <dd>Navigate interface</dd>
-                </dl>
-                
-                <h3 class="uk-h4">Managing Search Engines</h3>
-                <ul class="uk-list uk-list-bullet">
-                    <li>Click "Manage Engines" to add, edit, or delete search engines</li>
-                    <li>Use Import/Export to backup your configuration</li>
-                    <li>Set a default engine in Settings</li>
+
+                <!-- Help Tab Content -->
+                <ul class="uk-switcher uk-margin">
+                    <!-- Quick Start Tab -->
+                    <li>
+                        <div class="help-section">
+                            <h3>Getting Started</h3>
+                            <div class="uk-grid-small uk-child-width-1-1" uk-grid>
+                                <div>
+                                    <h4>1. Basic Search</h4>
+                                    <ul class="uk-list uk-list-bullet">
+                                        <li>Enter your search query in the main search box</li>
+                                        <li>Select search engines using checkboxes</li>
+                                        <li>Click "Search" or press Enter</li>
+                                        <li>Results open in new tabs for each engine</li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4>2. Managing Engines</h4>
+                                    <ul class="uk-list uk-list-bullet">
+                                        <li>Go to Settings → Search Engines</li>
+                                        <li>Add custom engines with "Add New Engine"</li>
+                                        <li>Edit engines with the pencil icon</li>
+                                        <li>Set default with the star icon</li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4>3. URL Templates</h4>
+                                    <p>Use {query} as placeholder in search URLs:</p>
+                                    <ul class="uk-list uk-list-bullet">
+                                        <li>Google: <code>https://www.google.com/search?q={query}</code></li>
+                                        <li>Wikipedia: <code>https://en.wikipedia.org/wiki/Special:Search?search={query}</code></li>
+                                        <li>YouTube: <code>https://www.youtube.com/results?search_query={query}</code></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- Shortcuts Tab -->
+                    <li>
+                        <div class="help-section">
+                            <h3>Keyboard Shortcuts</h3>
+                            <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
+                                <div>
+                                    <h4>Global Shortcuts</h4>
+                                    <table class="uk-table uk-table-small">
+                                        <tbody>
+                                            <tr><td><kbd>/</kbd></td><td>Focus search</td></tr>
+                                            <tr><td><kbd>Enter</kbd></td><td>Perform search</td></tr>
+                                            <tr><td><kbd>Escape</kbd></td><td>Close modals</td></tr>
+                                            <tr><td><kbd>Ctrl+H</kbd></td><td>Open history</td></tr>
+                                            <tr><td><kbd>Ctrl+S</kbd></td><td>Open settings</td></tr>
+                                            <tr><td><kbd>Shift+?</kbd></td><td>Open help</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div>
+                                    <h4>Modal Navigation</h4>
+                                    <table class="uk-table uk-table-small">
+                                        <tbody>
+                                            <tr><td><kbd>Tab</kbd></td><td>Next field</td></tr>
+                                            <tr><td><kbd>Shift+Tab</kbd></td><td>Previous field</td></tr>
+                                            <tr><td><kbd>Enter</kbd></td><td>Activate button</td></tr>
+                                            <tr><td><kbd>Escape</kbd></td><td>Close modal</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- FAQ Tab -->
+                    <li>
+                        <div class="help-section">
+                            <h3>Frequently Asked Questions</h3>
+                            <ul uk-accordion>
+                                <li>
+                                    <a class="uk-accordion-title" href="#">How do I add custom search engines?</a>
+                                    <div class="uk-accordion-content">
+                                        <p>Go to Settings → Search Engines → Add New Engine. Enter name and URL template with {query} placeholder.</p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <a class="uk-accordion-title" href="#">Is my data private?</a>
+                                    <div class="uk-accordion-content">
+                                        <p>Yes! All data is stored locally in your browser. No information is sent to our servers.</p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <a class="uk-accordion-title" href="#">How do I backup my settings?</a>
+                                    <div class="uk-accordion-content">
+                                        <p>Use Export Configuration in Settings → Advanced to download a backup file.</p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <a class="uk-accordion-title" href="#">Why won't an engine work?</a>
+                                    <div class="uk-accordion-content">
+                                        <p>Check the URL template includes {query} and test the URL manually in your browser.</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
                 </ul>
             </div>
-            
-            <p class="uk-text-right">
+
+            <div class="uk-modal-footer uk-text-right">
                 <button class="uk-button uk-button-default uk-modal-close" type="button">Close</button>
-            </p>
+                <button class="uk-button uk-button-primary" onclick="window.testComprehensiveFunctionality()">
+                    Test All Features
+                </button>
+            </div>
         </div>
     </div>
 

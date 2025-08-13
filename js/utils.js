@@ -567,6 +567,301 @@ const Utils = {
             throw error;
         }
     }
+
+    // ==================== SECURITY UTILITIES ====================
+
+    /**
+     * Comprehensive input sanitization
+     * @param {string} input - Input to sanitize
+     * @param {Object} options - Sanitization options
+     * @returns {string} Sanitized input
+     */
+    static sanitizeInput(input, options = {}) {
+        if (typeof input !== 'string') {
+            return '';
+        }
+
+        const {
+            allowHTML = false,
+            maxLength = 1000,
+            allowedTags = [],
+            stripScripts = true,
+            normalizeWhitespace = true
+        } = options;
+
+        let sanitized = input;
+
+        // Trim and limit length
+        sanitized = sanitized.trim().substring(0, maxLength);
+
+        // Normalize whitespace
+        if (normalizeWhitespace) {
+            sanitized = sanitized.replace(/\s+/g, ' ');
+        }
+
+        // Remove or escape HTML
+        if (!allowHTML) {
+            sanitized = Utils.escapeHtml(sanitized);
+        } else {
+            sanitized = Utils.sanitizeHTML(sanitized, allowedTags);
+        }
+
+        // Strip script tags and javascript: URLs
+        if (stripScripts) {
+            sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+            sanitized = sanitized.replace(/javascript:/gi, '');
+            sanitized = sanitized.replace(/on\w+\s*=/gi, '');
+        }
+
+        return sanitized;
+    }
+
+    /**
+     * Sanitize HTML content
+     * @param {string} html - HTML to sanitize
+     * @param {Array} allowedTags - Allowed HTML tags
+     * @returns {string} Sanitized HTML
+     */
+    static sanitizeHTML(html, allowedTags = ['b', 'i', 'em', 'strong', 'span']) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+
+        // Remove all script tags
+        const scripts = div.querySelectorAll('script');
+        scripts.forEach(script => script.remove());
+
+        // Remove dangerous attributes
+        const allElements = div.querySelectorAll('*');
+        allElements.forEach(element => {
+            // Remove event handlers
+            Array.from(element.attributes).forEach(attr => {
+                if (attr.name.startsWith('on') || attr.name === 'href' && attr.value.startsWith('javascript:')) {
+                    element.removeAttribute(attr.name);
+                }
+            });
+
+            // Remove non-allowed tags
+            if (!allowedTags.includes(element.tagName.toLowerCase())) {
+                element.replaceWith(...element.childNodes);
+            }
+        });
+
+        return div.innerHTML;
+    }
+
+    /**
+     * Validate and sanitize URL
+     * @param {string} url - URL to validate
+     * @param {Object} options - Validation options
+     * @returns {Object} Validation result
+     */
+    static validateSecureURL(url, options = {}) {
+        const {
+            allowedProtocols = ['http:', 'https:'],
+            allowedDomains = [],
+            blockPrivateIPs = true,
+            maxLength = 2048
+        } = options;
+
+        const result = {
+            isValid: false,
+            sanitizedURL: '',
+            errors: []
+        };
+
+        try {
+            // Basic validation
+            if (!url || typeof url !== 'string') {
+                result.errors.push('URL is required and must be a string');
+                return result;
+            }
+
+            if (url.length > maxLength) {
+                result.errors.push(`URL exceeds maximum length of ${maxLength} characters`);
+                return result;
+            }
+
+            // Sanitize URL
+            const sanitizedURL = Utils.sanitizeInput(url, { allowHTML: false, stripScripts: true });
+
+            // Parse URL
+            const urlObj = new URL(sanitizedURL);
+
+            // Check protocol
+            if (!allowedProtocols.includes(urlObj.protocol)) {
+                result.errors.push(`Protocol ${urlObj.protocol} is not allowed`);
+                return result;
+            }
+
+            // Check for dangerous patterns
+            if (Utils.containsDangerousPatterns(sanitizedURL)) {
+                result.errors.push('URL contains potentially dangerous patterns');
+                return result;
+            }
+
+            // Check domain restrictions
+            if (allowedDomains.length > 0 && !allowedDomains.includes(urlObj.hostname)) {
+                result.errors.push(`Domain ${urlObj.hostname} is not in allowed list`);
+                return result;
+            }
+
+            // Block private IP addresses if requested
+            if (blockPrivateIPs && Utils.isPrivateIP(urlObj.hostname)) {
+                result.errors.push('Private IP addresses are not allowed');
+                return result;
+            }
+
+            result.isValid = true;
+            result.sanitizedURL = sanitizedURL;
+
+        } catch (error) {
+            result.errors.push('Invalid URL format');
+        }
+
+        return result;
+    }
+
+    /**
+     * Check for dangerous patterns in URL
+     * @param {string} url - URL to check
+     * @returns {boolean} Whether URL contains dangerous patterns
+     */
+    static containsDangerousPatterns(url) {
+        const dangerousPatterns = [
+            /javascript:/i,
+            /data:/i,
+            /vbscript:/i,
+            /file:/i,
+            /<script/i,
+            /onload=/i,
+            /onerror=/i,
+            /onclick=/i
+        ];
+
+        return dangerousPatterns.some(pattern => pattern.test(url));
+    }
+
+    /**
+     * Check if hostname is a private IP address
+     * @param {string} hostname - Hostname to check
+     * @returns {boolean} Whether hostname is a private IP
+     */
+    static isPrivateIP(hostname) {
+        const privateIPPatterns = [
+            /^10\./,
+            /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+            /^192\.168\./,
+            /^127\./,
+            /^localhost$/i
+        ];
+
+        return privateIPPatterns.some(pattern => pattern.test(hostname));
+    }
+
+    /**
+     * Generate secure random token
+     * @param {number} length - Token length
+     * @returns {string} Secure random token
+     */
+    static generateSecureToken(length = 32) {
+        const array = new Uint8Array(length);
+        crypto.getRandomValues(array);
+        return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    /**
+     * Hash sensitive data
+     * @param {string} data - Data to hash
+     * @returns {Promise<string>} Hashed data
+     */
+    static async hashData(data) {
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(data);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    /**
+     * Validate Content Security Policy
+     * @param {string} content - Content to validate
+     * @returns {boolean} Whether content is CSP compliant
+     */
+    static validateCSP(content) {
+        // Check for inline scripts and styles
+        const hasInlineScript = /<script(?![^>]*src=)[^>]*>/i.test(content);
+        const hasInlineStyle = /<style[^>]*>/i.test(content);
+        const hasInlineHandlers = /on\w+\s*=/i.test(content);
+
+        return !hasInlineScript && !hasInlineStyle && !hasInlineHandlers;
+    }
+
+    /**
+     * Sanitize search query for security
+     * @param {string} query - Search query to sanitize
+     * @returns {string} Sanitized query
+     */
+    static sanitizeSearchQuery(query) {
+        return Utils.sanitizeInput(query, {
+            allowHTML: false,
+            maxLength: 500,
+            stripScripts: true,
+            normalizeWhitespace: true
+        });
+    }
+
+    /**
+     * Validate engine configuration for security
+     * @param {Object} engine - Engine configuration
+     * @returns {Object} Validation result
+     */
+    static validateEngineConfig(engine) {
+        const result = {
+            isValid: true,
+            errors: [],
+            sanitizedEngine: {}
+        };
+
+        try {
+            // Validate and sanitize name
+            if (!engine.name || typeof engine.name !== 'string') {
+                result.errors.push('Engine name is required');
+                result.isValid = false;
+            } else {
+                result.sanitizedEngine.name = Utils.sanitizeInput(engine.name, { maxLength: 100 });
+            }
+
+            // Validate and sanitize URL
+            const urlValidation = Utils.validateSecureURL(engine.url);
+            if (!urlValidation.isValid) {
+                result.errors.push(...urlValidation.errors);
+                result.isValid = false;
+            } else {
+                result.sanitizedEngine.url = urlValidation.sanitizedURL;
+            }
+
+            // Validate other properties
+            if (engine.icon) {
+                const iconValidation = Utils.validateSecureURL(engine.icon);
+                result.sanitizedEngine.icon = iconValidation.isValid ? iconValidation.sanitizedURL : '';
+            }
+
+            if (engine.color) {
+                result.sanitizedEngine.color = Utils.sanitizeInput(engine.color, { maxLength: 20 });
+            }
+
+            // Copy safe properties
+            result.sanitizedEngine.enabled = Boolean(engine.enabled);
+            result.sanitizedEngine.isDefault = Boolean(engine.isDefault);
+            result.sanitizedEngine.sortOrder = Number(engine.sortOrder) || 0;
+
+        } catch (error) {
+            result.errors.push('Invalid engine configuration format');
+            result.isValid = false;
+        }
+
+        return result;
+    }
 };
 
 // Export for use in other modules

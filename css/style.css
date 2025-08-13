@@ -3850,6 +3850,198 @@ footer p {
     }
 }
 
+/* Cross-Browser Compatibility Fixes */
+
+/* Safari-specific fixes */
+@supports (-webkit-appearance: none) {
+    .uk-search-input,
+    .uk-input,
+    .uk-select,
+    .uk-textarea {
+        -webkit-appearance: none;
+        -webkit-border-radius: var(--border-radius);
+    }
+
+    .uk-button {
+        -webkit-appearance: none;
+        -webkit-border-radius: var(--border-radius);
+    }
+
+    /* Safari backdrop-filter support */
+    .uk-search-input,
+    .engine-card,
+    .uk-modal-dialog,
+    .uk-notification-message {
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+    }
+}
+
+/* Firefox-specific fixes */
+@-moz-document url-prefix() {
+    .uk-input,
+    .uk-select,
+    .uk-textarea {
+        -moz-appearance: none;
+    }
+
+    .uk-button {
+        -moz-appearance: none;
+    }
+
+    /* Firefox scrollbar styling */
+    .history-list-container,
+    .uk-modal-body {
+        scrollbar-width: thin;
+        scrollbar-color: var(--primary-color) var(--border-color);
+    }
+}
+
+/* Edge/IE compatibility */
+@supports (-ms-ime-align: auto) {
+    .uk-grid {
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    }
+
+    .uk-flex {
+        display: -ms-flexbox;
+        display: flex;
+    }
+
+    .uk-flex-1 {
+        -ms-flex: 1;
+        flex: 1;
+    }
+}
+
+/* Chrome-specific optimizations */
+@supports (-webkit-transform: translateZ(0)) {
+    .engine-card,
+    .uk-button,
+    .uk-modal-dialog {
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+    }
+}
+
+/* General browser compatibility */
+.uk-input,
+.uk-select,
+.uk-textarea,
+.uk-button {
+    /* Ensure consistent box-sizing */
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+
+    /* Prevent zoom on iOS */
+    font-size: 16px;
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .uk-input,
+    .uk-textarea {
+        /* Prevent zoom on focus */
+        font-size: 16px;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    /* Fix iOS Safari viewport issues */
+    body {
+        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Fix iOS Safari button styling */
+    .uk-button {
+        -webkit-appearance: none;
+        border-radius: var(--border-radius);
+    }
+}
+
+/* Flexbox fallbacks for older browsers */
+.uk-flex {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+}
+
+.uk-flex-1 {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    -ms-flex: 1;
+    flex: 1;
+}
+
+.uk-flex-between {
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    -ms-flex-pack: justify;
+    justify-content: space-between;
+}
+
+.uk-flex-middle {
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
+}
+
+/* Grid fallbacks */
+.uk-grid {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-flex-wrap: wrap;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+}
+
+/* Transform fallbacks */
+.engine-card:hover {
+    -webkit-transform: translateY(-1px);
+    -moz-transform: translateY(-1px);
+    -ms-transform: translateY(-1px);
+    transform: translateY(-1px);
+}
+
+/* Transition fallbacks */
+.uk-button,
+.engine-card,
+.uk-input {
+    -webkit-transition: all 0.2s ease;
+    -moz-transition: all 0.2s ease;
+    -ms-transition: all 0.2s ease;
+    transition: all 0.2s ease;
+}
+
+/* Border-radius fallbacks */
+.uk-card,
+.uk-button,
+.uk-input,
+.uk-modal-dialog {
+    -webkit-border-radius: var(--border-radius);
+    -moz-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
+}
+
+/* Box-shadow fallbacks */
+.uk-card,
+.engine-card {
+    -webkit-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    -moz-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
 .border-primary {
     border-color: var(--primary-color) !important;
 }
