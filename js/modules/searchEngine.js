@@ -44,32 +44,58 @@ export class SearchEngineManager {
      */
     async loadEngines() {
         try {
-            this.engines = await this.database.getAll('engines');
+            const allEngines = await this.database.getAll('engines');
 
             // Validate loaded engines
-            if (!Array.isArray(this.engines)) {
+            if (!Array.isArray(allEngines)) {
                 console.warn('SearchEngineManager: Invalid engines data from database');
                 this.engines = [];
                 return;
             }
 
-            // Filter out invalid engines
-            const validEngines = this.engines.filter(engine => {
+            // Filter out invalid engines and clean up corrupted ones
+            const validEngines = [];
+            const corruptedEngines = [];
+
+            for (const engine of allEngines) {
                 if (!engine || typeof engine !== 'object') {
                     console.warn('SearchEngineManager: Invalid engine object:', engine);
-                    return false;
+                    corruptedEngines.push(engine);
+                    continue;
                 }
 
                 if (!engine.id || !engine.name || !engine.url) {
                     console.warn('SearchEngineManager: Engine missing required properties:', engine);
-                    return false;
+                    corruptedEngines.push(engine);
+                    continue;
                 }
 
-                return true;
-            });
+                validEngines.push(engine);
+            }
+
+            // Remove corrupted engines from database
+            if (corruptedEngines.length > 0) {
+                console.warn(`🧹 Cleaning up ${corruptedEngines.length} corrupted engines from database`);
+                for (const corruptedEngine of corruptedEngines) {
+                    if (corruptedEngine && corruptedEngine.id) {
+                        try {
+                            await this.database.delete('engines', corruptedEngine.id);
+                            console.log(`🗑️ Removed corrupted engine: ${corruptedEngine.id}`);
+                        } catch (error) {
+                            console.warn(`Failed to remove corrupted engine ${corruptedEngine.id}:`, error);
+                        }
+                    }
+                }
+            }
 
             this.engines = validEngines;
             console.log(`📊 Loaded ${this.engines.length} valid search engines`);
+
+            // If no valid engines remain, trigger default setup
+            if (this.engines.length === 0) {
+                console.log('🔄 No valid engines found, will load defaults');
+                await this.ensureDefaultEngines();
+            }
 
         } catch (error) {
             console.warn('No engines found in database, will load defaults:', error);
@@ -266,12 +292,18 @@ export class SearchEngineManager {
 
         // Validate each engine has required properties
         const validEngines = activeEngines.filter(engine => {
-            if (!engine.id || !engine.name || !engine.url) {
-                console.warn(`SearchEngineManager: Invalid engine data:`, engine);
+            if (!engine || !engine.id || !engine.name || !engine.url) {
+                console.warn(`SearchEngineManager: Invalid active engine data:`, engine);
                 return false;
             }
             return true;
         });
+
+        // If no valid active engines, log warning and suggest reload
+        if (validEngines.length === 0 && activeEngines.length > 0) {
+            console.warn('🚨 All active engines are invalid. Database may be corrupted.');
+            console.warn('💡 Consider using reset-db.html to fix database issues');
+        }
 
         return validEngines;
     }
