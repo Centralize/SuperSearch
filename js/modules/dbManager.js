@@ -384,11 +384,25 @@ export class DatabaseManager {
     async findByIndex(storeName, indexName, value) {
         await this._ensureInitialized();
 
-        const transaction = this._getTransaction(storeName, 'readonly');
-        const store = transaction.objectStore(storeName);
-        const index = store.index(indexName);
+        try {
+            const transaction = this._getTransaction(storeName, 'readonly');
+            const store = transaction.objectStore(storeName);
 
-        return this._executeOperation(() => index.getAll(value));
+            // Check if index exists before trying to access it
+            if (!store.indexNames.contains(indexName)) {
+                console.warn(`DatabaseManager: Index '${indexName}' not found in store '${storeName}'. Available indexes:`, Array.from(store.indexNames));
+                // Fallback to getting all records and filtering manually
+                const allRecords = await this._executeOperation(() => store.getAll());
+                return allRecords.filter(record => record[indexName] === value);
+            }
+
+            const index = store.index(indexName);
+            return this._executeOperation(() => index.getAll(value));
+
+        } catch (error) {
+            console.error(`DatabaseManager: Error in findByIndex for ${storeName}.${indexName}:`, error);
+            throw error;
+        }
     }
 
     /**
@@ -584,19 +598,114 @@ export class DatabaseManager {
      * @returns {Promise<void>}
      */
     async deleteDatabase() {
+        console.log('🗑️ DatabaseManager: Deleting database...');
+
         this.close();
+
+        // Reset initialization state
+        this.isInitialized = false;
+        this.initPromise = null;
 
         return new Promise((resolve, reject) => {
             const deleteRequest = indexedDB.deleteDatabase(this.dbName);
 
             deleteRequest.onsuccess = () => {
-                console.log('📊 DatabaseManager: Database deleted successfully');
+                console.log('✅ DatabaseManager: Database deleted successfully');
                 resolve();
             };
 
             deleteRequest.onerror = () => {
+                console.error('❌ DatabaseManager: Failed to delete database');
                 reject(new Error('Failed to delete database'));
             };
+
+            deleteRequest.onblocked = () => {
+                console.warn('⚠️ DatabaseManager: Database deletion blocked');
+                reject(new Error('Database deletion blocked - close all tabs'));
+            };
         });
+    }
+
+    /**
+     * Reset and recreate the database with current schema
+     * @returns {Promise<void>}
+     */
+    async resetDatabase() {
+        console.log('🔄 DatabaseManager: Resetting database...');
+
+        try {
+            await this.deleteDatabase();
+            await this.init();
+            console.log('✅ DatabaseManager: Database reset successfully');
+        } catch (error) {
+            console.error('DatabaseManager: Reset database error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Diagnose database issues and provide information
+     * @returns {Promise<Object>} Diagnostic information
+     */
+    async diagnoseDatabase() {
+        const diagnosis = {
+            isInitialized: this.isInitialized,
+            dbExists: !!this.db,
+            version: this.db ? this.db.version : null,
+            expectedVersion: this.dbVersion,
+            stores: {},
+            issues: []
+        };
+
+        try {
+            if (!this.db) {
+                diagnosis.issues.push('Database connection not established');
+                return diagnosis;
+            }
+
+            // Check each store
+            for (const [storeName, config] of Object.entries(this.schema)) {
+                const storeInfo = {
+                    exists: this.db.objectStoreNames.contains(storeName),
+                    indexes: [],
+                    missingIndexes: []
+                };
+
+                if (storeInfo.exists) {
+                    // Get store in a transaction to check indexes
+                    try {
+                        const transaction = this.db.transaction([storeName], 'readonly');
+                        const store = transaction.objectStore(storeName);
+
+                        storeInfo.indexes = Array.from(store.indexNames);
+
+                        // Check for missing indexes
+                        config.indexes.forEach(expectedIndex => {
+                            if (!store.indexNames.contains(expectedIndex.name)) {
+                                storeInfo.missingIndexes.push(expectedIndex.name);
+                                diagnosis.issues.push(`Missing index '${expectedIndex.name}' in store '${storeName}'`);
+                            }
+                        });
+
+                    } catch (error) {
+                        diagnosis.issues.push(`Error accessing store '${storeName}': ${error.message}`);
+                    }
+                } else {
+                    diagnosis.issues.push(`Missing object store '${storeName}'`);
+                }
+
+                diagnosis.stores[storeName] = storeInfo;
+            }
+
+            // Check version mismatch
+            if (this.db.version !== this.dbVersion) {
+                diagnosis.issues.push(`Version mismatch: expected ${this.dbVersion}, got ${this.db.version}`);
+            }
+
+        } catch (error) {
+            diagnosis.issues.push(`Diagnosis error: ${error.message}`);
+        }
+
+        return diagnosis;
     }
 }

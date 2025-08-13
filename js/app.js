@@ -326,22 +326,141 @@ class SuperSearchApp {
         console.log('🐛 Debug mode disabled');
         delete window.superSearch;
     }
+
+    /**
+     * Handle application errors
+     */
+    handleError(error, context = 'Application') {
+        console.error(`❌ ${context} Error:`, error);
+
+        // Check if it's a database-related error
+        if (error.message && error.message.includes('index') && error.message.includes('not found')) {
+            this.handleDatabaseError(error);
+            return;
+        }
+
+        // Show user-friendly error message
+        if (this.modules.notification) {
+            this.modules.notification.error(`${context} error: ${error.message}`);
+        }
+
+        // In development, you might want to show more details
+        if (this.config.debug) {
+            console.trace('Error stack trace:', error);
+        }
+    }
+
+    /**
+     * Handle database-specific errors
+     */
+    async handleDatabaseError(error) {
+        console.error('🗄️ Database Error:', error);
+
+        if (this.modules.notification) {
+            this.modules.notification.error('Database error detected. Attempting to fix...');
+        }
+
+        try {
+            // Diagnose the database
+            const diagnosis = await this.modules.database.diagnoseDatabase();
+            console.log('📊 Database Diagnosis:', diagnosis);
+
+            if (diagnosis.issues.length > 0) {
+                console.warn('🔧 Database issues found:', diagnosis.issues);
+
+                // Ask user if they want to reset the database
+                const shouldReset = confirm(
+                    'Database issues detected. Would you like to reset the database?\n\n' +
+                    'This will:\n' +
+                    '- Clear all data (search engines, history, settings)\n' +
+                    '- Reload default search engines\n' +
+                    '- Fix database structure issues\n\n' +
+                    'Click OK to reset, Cancel to continue with potential issues.'
+                );
+
+                if (shouldReset) {
+                    await this.resetDatabase();
+                } else {
+                    this.modules.notification.warning('Continuing with database issues. Some features may not work correctly.');
+                }
+            }
+
+        } catch (diagError) {
+            console.error('Failed to diagnose database:', diagError);
+            this.modules.notification.error('Database error could not be resolved automatically.');
+        }
+    }
+
+    /**
+     * Reset the database and reinitialize
+     */
+    async resetDatabase() {
+        try {
+            this.modules.notification.info('Resetting database...');
+
+            // Reset the database
+            await this.modules.database.resetDatabase();
+
+            // Reinitialize modules that depend on the database
+            await this.modules.searchEngine.init();
+            await this.modules.config.loadPreferences();
+
+            // Reload the UI
+            await this.modules.ui.loadSearchEngines();
+
+            this.modules.notification.success('Database reset successfully! Default search engines have been restored.');
+
+        } catch (error) {
+            console.error('Failed to reset database:', error);
+            this.modules.notification.error('Failed to reset database. Please refresh the page.');
+        }
+    }
 }
 
 // Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🌟 DOM loaded, starting SuperSearch...');
-    
-    // Create and initialize the application
-    const app = new SuperSearchApp();
-    
-    // Enable debug mode in development
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        app.enableDebug();
+
+    try {
+        // Create and initialize the application
+        const app = new SuperSearchApp();
+
+        // Enable debug mode in development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            app.enableDebug();
+        }
+
+        // Set up global error handlers
+        window.addEventListener('error', (event) => {
+            app.handleError(event.error, 'Global');
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            app.handleError(event.reason, 'Promise');
+            event.preventDefault(); // Prevent console error
+        });
+
+        // Initialize the application
+        await app.init();
+
+        // Expose app globally for debugging
+        window.app = app;
+
+    } catch (error) {
+        console.error('❌ Failed to initialize SuperSearch:', error);
+
+        // Show basic error message if notification system isn't available
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#f8d7da;color:#721c24;padding:15px;border:1px solid #f5c6cb;border-radius:5px;z-index:9999;max-width:500px;';
+        errorDiv.innerHTML = `
+            <strong>SuperSearch Failed to Start</strong><br>
+            Error: ${error.message}<br>
+            <button onclick="location.reload()" style="margin-top:10px;padding:5px 10px;background:#dc3545;color:white;border:none;border-radius:3px;cursor:pointer;">
+                Reload Page
+            </button>
+        `;
+        document.body.appendChild(errorDiv);
     }
-    
-    // Initialize the application
-    await app.init();
 });
 
 // Export for potential external use
