@@ -182,7 +182,7 @@ class SearchHandler {
      * Search multiple engines and open all results
      * @param {string} query - Search query
      * @param {Array} engineIds - Array of engine IDs to search
-     * @returns {Promise<void>}
+     * @returns {Promise<Object>} Search coordination result
      */
     async searchMultiple(query, engineIds = null) {
         try {
@@ -194,26 +194,132 @@ class SearchHandler {
                 throw new Error('No search engines selected');
             }
 
-            // Get user preferences
-            const preferences = await this.dbManager.getPreferences();
-            const target = preferences.openInNewTab ? '_blank' : '_self';
+            const searchId = Utils.generateId();
+            this.currentSearchId = searchId;
 
-            // Open search on all engines
-            engines.forEach(engine => {
-                const searchUrl = this.buildSearchUrl(engine, query);
-                setTimeout(() => {
-                    window.open(searchUrl, target);
-                }, engines.indexOf(engine) * 100); // Stagger opening to avoid popup blocking
-            });
+            // Clear previous results
+            this.searchResults.clear();
 
             // Add to search history
             await this.addToHistory(query, engines);
 
-            Utils.showNotification(`Opened search on ${engines.length} engines`, 'success');
+            // Get user preferences for opening behavior
+            const preferences = await this.dbManager.getPreferences();
+            const openInNewTab = preferences.openInNewTab !== false;
+
+            // Start search on all engines with staggered opening
+            const searchPromises = engines.map((engine, index) => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        this.executeEngineSearch(engine, query, searchId, openInNewTab)
+                            .then(resolve)
+                            .catch(resolve);
+                    }, index * 150); // Stagger by 150ms to avoid popup blocking
+                });
+            });
+
+            // Process all searches
+            const results = await Promise.allSettled(searchPromises);
+            
+            // Emit completion event
+            const successful = results.filter(r => r.status === 'fulfilled' && r.value?.status !== 'error').length;
+            const failed = results.length - successful;
+
+            this.emitSearchComplete(searchId, {
+                total: engines.length,
+                successful,
+                failed,
+                results: Array.from(this.searchResults.values())
+            });
+
+            Utils.showNotification(`Opened search on ${successful} engines`, 'success');
+
+            return {
+                searchId,
+                query,
+                engines,
+                successful,
+                failed,
+                status: 'completed'
+            };
 
         } catch (error) {
             Utils.logError(error, 'Multiple search failed');
-            Utils.showNotification('Multiple search failed', 'danger');
+            Utils.showNotification('Multiple search failed: ' + error.message, 'danger');
+            throw error;
+        }
+    }
+
+    /**
+     * Execute search for a single engine
+     * @param {Object} engine - Search engine
+     * @param {string} query - Search query
+     * @param {string} searchId - Search ID
+     * @param {boolean} openInNewTab - Whether to open in new tab
+     * @returns {Promise<Object>} Search result
+     * @private
+     */
+    async executeEngineSearch(engine, query, searchId, openInNewTab = true) {
+        try {
+            // Emit loading state first
+            const loadingResult = {
+                engineId: engine.id,
+                engineName: engine.name,
+                query,
+                status: 'loading',
+                timestamp: new Date().toISOString()
+            };
+            this.emitSearchResult(searchId, engine.id, loadingResult);
+
+            const searchUrl = this.buildSearchUrl(engine, query);
+
+            // Open the search URL
+            if (typeof window !== 'undefined' && window.open) {
+                const target = openInNewTab ? '_blank' : '_self';
+                const windowFeatures = openInNewTab ? 'noopener,noreferrer' : '';
+                window.open(searchUrl, target, windowFeatures);
+            }
+
+            const result = {
+                engineId: engine.id,
+                engineName: engine.name,
+                engineColor: engine.color,
+                engineIcon: engine.icon,
+                query,
+                url: searchUrl,
+                timestamp: new Date().toISOString(),
+                status: 'opened',
+                openMethod: openInNewTab ? 'new_tab' : 'current_tab'
+            };
+
+            // Store result
+            this.searchResults.set(engine.id, result);
+
+            // Emit search result event
+            this.emitSearchResult(searchId, engine.id, result);
+
+            return result;
+
+        } catch (error) {
+            Utils.logError(error, `Search execution failed for engine: ${engine.name}`);
+
+            const errorResult = {
+                engineId: engine.id,
+                engineName: engine.name,
+                engineColor: engine.color,
+                engineIcon: engine.icon,
+                query,
+                error: error.message,
+                errorType: this.categorizeError(error),
+                timestamp: new Date().toISOString(),
+                status: 'error',
+                retryable: this.isRetryableError(error)
+            };
+
+            this.searchResults.set(engine.id, errorResult);
+            this.emitSearchResult(searchId, engine.id, errorResult);
+
+            return errorResult;
         }
     }
 
@@ -398,6 +504,79 @@ class SearchHandler {
     clearResults() {
         this.searchResults.clear();
         this.currentSearchId = null;
+    }
+
+    /**
+     * Categorize error type for better user feedback
+     * @param {Error} error - The error to categorize
+     * @returns {string} Error category
+     */
+    categorizeError(error) {
+        const message = error.message.toLowerCase();
+
+        if (message.includes('popup') || message.includes('blocked')) {
+            return 'popup_blocked';
+        } else if (message.includes('network') || message.includes('fetch')) {
+            return 'network_error';
+        } else if (message.includes('url') || message.includes('invalid')) {
+            return 'invalid_url';
+        } else if (message.includes('timeout')) {
+            return 'timeout';
+        } else {
+            return 'unknown';
+        }
+    }
+
+    /**
+     * Check if error is retryable
+     * @param {Error} error - The error to check
+     * @returns {boolean} Whether the error is retryable
+     */
+    isRetryableError(error) {
+        const errorType = this.categorizeError(error);
+        return ['network_error', 'timeout', 'unknown'].includes(errorType);
+    }
+
+    /**
+     * Retry failed search for a specific engine
+     * @param {string} engineId - Engine ID to retry
+     * @param {string} query - Search query
+     * @returns {Promise<Object>} Retry result
+     */
+    async retryEngineSearch(engineId, query) {
+        try {
+            const engine = this.engineManager.getEngine(engineId);
+            if (!engine) {
+                throw new Error('Search engine not found');
+            }
+
+            const searchId = this.currentSearchId || Utils.generateId();
+            return await this.executeEngineSearch(engine, query, searchId);
+
+        } catch (error) {
+            Utils.logError(error, `Retry failed for engine: ${engineId}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Get user-friendly error message
+     * @param {Object} errorResult - Error result object
+     * @returns {string} User-friendly error message
+     */
+    getUserFriendlyErrorMessage(errorResult) {
+        switch (errorResult.errorType) {
+            case 'popup_blocked':
+                return 'Pop-up blocked. Please allow pop-ups for this site and try again.';
+            case 'network_error':
+                return 'Network error. Please check your internet connection and try again.';
+            case 'invalid_url':
+                return 'Invalid search URL. Please check the engine configuration.';
+            case 'timeout':
+                return 'Search timed out. Please try again.';
+            default:
+                return `Search failed: ${errorResult.error}`;
+        }
     }
 
     /**

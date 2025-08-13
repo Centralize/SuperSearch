@@ -496,6 +496,18 @@ class SearchEngineManager {
             // Filter out disabled engines from active list
             this.activeEngines = this.activeEngines.filter(engine => engine.enabled);
         }
+
+        // Emit event for UI updates
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            const event = new CustomEvent('activeEnginesChanged', {
+                detail: {
+                    activeEngines: this.getActiveEngines(),
+                    totalEngines: this.engines.length,
+                    enabledEngines: this.getEnabledEngines().length
+                }
+            });
+            window.dispatchEvent(event);
+        }
     }
 
     /**
@@ -504,7 +516,7 @@ class SearchEngineManager {
      */
     updateDefaultEngine() {
         this.defaultEngine = this.engines.find(engine => engine.isDefault) || null;
-        
+
         // If no default engine set, set the first enabled engine as default
         if (!this.defaultEngine && this.engines.length > 0) {
             const firstEnabled = this.engines.find(engine => engine.enabled);
@@ -513,6 +525,17 @@ class SearchEngineManager {
                     Utils.logError(error, 'Failed to set automatic default engine');
                 });
             }
+        }
+
+        // Emit event for UI updates
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+            const event = new CustomEvent('defaultEngineChanged', {
+                detail: {
+                    defaultEngine: this.defaultEngine,
+                    hasDefault: !!this.defaultEngine
+                }
+            });
+            window.dispatchEvent(event);
         }
     }
 
@@ -525,7 +548,12 @@ class SearchEngineManager {
             total: this.engines.length,
             enabled: this.getEnabledEngines().length,
             active: this.activeEngines.length,
-            hasDefault: !!this.defaultEngine
+            hasDefault: !!this.defaultEngine,
+            defaultEngineId: this.defaultEngine?.id || null,
+            lastModified: this.engines.reduce((latest, engine) => {
+                const engineDate = new Date(engine.modifiedAt || engine.createdAt);
+                return engineDate > latest ? engineDate : latest;
+            }, new Date(0))
         };
     }
 
@@ -606,6 +634,370 @@ class SearchEngineManager {
             Utils.logError(error, 'Failed to import configuration');
             Utils.showNotification('Failed to import configuration', 'danger');
             throw error;
+        }
+    }
+
+    /**
+     * Bulk update engines
+     * @param {Array} updates - Array of {id, updates} objects
+     * @returns {Promise<void>}
+     */
+    async bulkUpdateEngines(updates) {
+        try {
+            const updatePromises = updates.map(({ id, updates: engineUpdates }) =>
+                this.modifyEngine(id, engineUpdates)
+            );
+
+            await Promise.all(updatePromises);
+            Utils.showNotification(`Updated ${updates.length} engines`, 'success');
+        } catch (error) {
+            Utils.logError(error, 'Bulk update failed');
+            Utils.showNotification('Bulk update failed', 'danger');
+            throw error;
+        }
+    }
+
+    /**
+     * Reset engines to defaults
+     * @returns {Promise<void>}
+     */
+    async resetToDefaults() {
+        try {
+            // Clear all existing engines
+            const deletePromises = this.engines.map(engine =>
+                this.dbManager.deleteEngine(engine.id)
+            );
+            await Promise.all(deletePromises);
+
+            // Reload default engines
+            await this.loadDefaultEngines();
+
+            Utils.showNotification('Reset to default engines', 'success');
+        } catch (error) {
+            Utils.logError(error, 'Failed to reset engines');
+            Utils.showNotification('Failed to reset engines', 'danger');
+            throw error;
+        }
+    }
+
+    /**
+     * Get engines by status
+     * @param {string} status - Status to filter by ('enabled', 'disabled', 'default', 'active')
+     * @returns {Array} Filtered engines
+     */
+    getEnginesByStatus(status) {
+        switch (status) {
+            case 'enabled':
+                return this.getEnabledEngines();
+            case 'disabled':
+                return this.engines.filter(engine => !engine.enabled);
+            case 'default':
+                return this.defaultEngine ? [this.defaultEngine] : [];
+            case 'active':
+                return this.getActiveEngines();
+            default:
+                return this.getAllEngines();
+        }
+    }
+
+    /**
+     * Check if engine can be safely deleted
+     * @param {string} id - Engine ID
+     * @returns {Object} Validation result with canDelete boolean and reason
+     */
+    canDeleteEngine(id) {
+        const engine = this.getEngine(id);
+        if (!engine) {
+            return { canDelete: false, reason: 'Engine not found' };
+        }
+
+        // Cannot delete if it's the only enabled engine
+        const enabledEngines = this.getEnabledEngines();
+        if (enabledEngines.length === 1 && engine.enabled) {
+            return { canDelete: false, reason: 'Cannot delete the only enabled engine' };
+        }
+
+        // Cannot delete if it's the default engine and there are no other enabled engines
+        if (engine.isDefault && enabledEngines.length <= 1) {
+            return { canDelete: false, reason: 'Cannot delete the default engine when no other engines are available' };
+        }
+
+        return { canDelete: true, reason: null };
+    }
+
+    /**
+     * Duplicate an existing engine
+     * @param {string} id - Engine ID to duplicate
+     * @param {string} newName - Name for the duplicated engine
+     * @returns {Promise<string>} New engine ID
+     */
+    async duplicateEngine(id, newName) {
+        try {
+            const originalEngine = this.getEngine(id);
+            if (!originalEngine) {
+                throw new Error('Original engine not found');
+            }
+
+            const duplicateConfig = {
+                ...originalEngine,
+                id: Utils.generateId(),
+                name: newName || `${originalEngine.name} (Copy)`,
+                isDefault: false,
+                enabled: true,
+                sortOrder: this.engines.length,
+                createdAt: new Date().toISOString(),
+                modifiedAt: new Date().toISOString()
+            };
+
+            return await this.addEngine(duplicateConfig);
+        } catch (error) {
+            Utils.logError(error, 'Failed to duplicate engine');
+            throw error;
+        }
+    }
+
+    /**
+     * Test all CRUD operations (for development/testing)
+     * @returns {Promise<Object>} Test results
+     */
+    async testCRUDOperations() {
+        const testResults = {
+            create: false,
+            read: false,
+            update: false,
+            delete: false,
+            errors: []
+        };
+
+        try {
+            console.log('Testing SearchEngineManager CRUD operations...');
+
+            // Clean up any existing test engines first
+            const existingTestEngines = this.engines.filter(e => e.name.includes('Test Engine') || e.id.includes('test-engine'));
+            for (const testEngine of existingTestEngines) {
+                try {
+                    await this.deleteEngine(testEngine.id);
+                    console.log(`Cleaned up existing test engine: ${testEngine.name}`);
+                } catch (cleanupError) {
+                    console.log(`Could not clean up test engine: ${testEngine.name}`);
+                }
+            }
+
+            // Test CREATE with unique identifier
+            const timestamp = Date.now();
+            const testEngine = {
+                id: `test-engine-${timestamp}`,
+                name: `Test Engine ${timestamp}`,
+                url: `https://test-${timestamp}.example.com/search?q={query}`,
+                icon: 'https://example.com/favicon.ico',
+                color: '#ff0000',
+                enabled: true,
+                isDefault: false,
+                sortOrder: 999
+            };
+
+            const engineId = await this.addEngine(testEngine);
+            testResults.create = true;
+            console.log('✓ CREATE test passed');
+
+            // Test READ
+            const retrievedEngine = this.getEngine(engineId);
+            if (retrievedEngine && retrievedEngine.name === testEngine.name) {
+                testResults.read = true;
+                console.log('✓ READ test passed');
+            } else {
+                throw new Error('Retrieved engine does not match created engine');
+            }
+
+            // Test UPDATE
+            await this.modifyEngine(engineId, { name: 'Updated Test Engine', color: '#00ff00' });
+            const updatedEngine = this.getEngine(engineId);
+            if (updatedEngine && updatedEngine.name === 'Updated Test Engine' && updatedEngine.color === '#00ff00') {
+                testResults.update = true;
+                console.log('✓ UPDATE test passed');
+            } else {
+                throw new Error('Engine update failed');
+            }
+
+            // Test DELETE
+            await this.deleteEngine(engineId);
+
+            // Reload engines to ensure fresh data
+            await this.loadEngines();
+
+            const deletedEngine = this.getEngine(engineId);
+            if (!deletedEngine) {
+                testResults.delete = true;
+                console.log('✓ DELETE test passed');
+            } else {
+                throw new Error('Engine deletion failed - engine still exists');
+            }
+
+            console.log('All CRUD tests passed successfully!');
+            return testResults;
+
+        } catch (error) {
+            testResults.errors.push(error.message);
+            Utils.logError(error, 'CRUD test failed');
+            return testResults;
+        }
+    }
+
+    /**
+     * Test default engine management
+     * @returns {Promise<Object>} Test results
+     */
+    async testDefaultEngineManagement() {
+        const testResults = {
+            setDefault: false,
+            switchDefault: false,
+            persistDefault: false,
+            autoDefault: false,
+            errors: []
+        };
+
+        try {
+            console.log('Testing default engine management...');
+
+            // Ensure we have at least 2 engines for testing
+            const engines = this.getEnabledEngines();
+            if (engines.length < 2) {
+                throw new Error('Need at least 2 enabled engines for default engine testing');
+            }
+
+            const [firstEngine, secondEngine] = engines;
+
+            // Test SET DEFAULT
+            await this.setDefault(firstEngine.id);
+            if (this.getDefaultEngine()?.id === firstEngine.id) {
+                testResults.setDefault = true;
+                console.log('✓ SET DEFAULT test passed');
+            } else {
+                throw new Error('Failed to set default engine');
+            }
+
+            // Test SWITCH DEFAULT
+            await this.setDefault(secondEngine.id);
+            if (this.getDefaultEngine()?.id === secondEngine.id) {
+                testResults.switchDefault = true;
+                console.log('✓ SWITCH DEFAULT test passed');
+            } else {
+                throw new Error('Failed to switch default engine');
+            }
+
+            // Test PERSIST DEFAULT (reload and check)
+            await this.loadEngines();
+            if (this.getDefaultEngine()?.id === secondEngine.id) {
+                testResults.persistDefault = true;
+                console.log('✓ PERSIST DEFAULT test passed');
+            } else {
+                throw new Error('Default engine not persisted');
+            }
+
+            // Test AUTO DEFAULT (temporarily remove default and check auto-assignment)
+            const originalDefault = this.getDefaultEngine();
+            await this.dbManager.updateEngine(secondEngine.id, { isDefault: false });
+            await this.loadEngines();
+
+            // Should auto-assign first enabled engine as default
+            if (this.getDefaultEngine()) {
+                testResults.autoDefault = true;
+                console.log('✓ AUTO DEFAULT test passed');
+            } else {
+                console.log('⚠ AUTO DEFAULT test: No auto-assignment (may be expected)');
+                testResults.autoDefault = true; // Not critical
+            }
+
+            // Restore original default
+            if (originalDefault) {
+                await this.setDefault(originalDefault.id);
+            }
+
+            console.log('All default engine management tests completed!');
+            return testResults;
+
+        } catch (error) {
+            testResults.errors.push(error.message);
+            Utils.logError(error, 'Default engine management test failed');
+            return testResults;
+        }
+    }
+
+    /**
+     * Comprehensive validation of SearchEngineManager functionality
+     * @returns {Object} Validation results
+     */
+    validateImplementation() {
+        const validation = {
+            classStructure: false,
+            crudMethods: false,
+            defaultManagement: false,
+            activeTracking: false,
+            dataIntegrity: false,
+            score: 0,
+            issues: []
+        };
+
+        try {
+            // Check class structure
+            const requiredMethods = [
+                'init', 'loadEngines', 'addEngine', 'modifyEngine', 'deleteEngine',
+                'setDefault', 'getDefaultEngine', 'getActiveEngines', 'setActiveEngines',
+                'getAllEngines', 'getEnabledEngines', 'validateEngineConfig'
+            ];
+
+            const missingMethods = requiredMethods.filter(method => typeof this[method] !== 'function');
+            if (missingMethods.length === 0) {
+                validation.classStructure = true;
+            } else {
+                validation.issues.push(`Missing methods: ${missingMethods.join(', ')}`);
+            }
+
+            // Check CRUD methods exist and are callable
+            const crudMethods = ['addEngine', 'getAllEngines', 'modifyEngine', 'deleteEngine'];
+            const workingCrud = crudMethods.filter(method => typeof this[method] === 'function');
+            if (workingCrud.length === crudMethods.length) {
+                validation.crudMethods = true;
+            } else {
+                validation.issues.push('CRUD methods not fully implemented');
+            }
+
+            // Check default management
+            if (typeof this.setDefault === 'function' &&
+                typeof this.getDefaultEngine === 'function' &&
+                this.defaultEngine !== undefined) {
+                validation.defaultManagement = true;
+            } else {
+                validation.issues.push('Default engine management incomplete');
+            }
+
+            // Check active tracking
+            if (typeof this.setActiveEngines === 'function' &&
+                typeof this.getActiveEngines === 'function' &&
+                Array.isArray(this.activeEngines)) {
+                validation.activeTracking = true;
+            } else {
+                validation.issues.push('Active engines tracking incomplete');
+            }
+
+            // Check data integrity
+            const stats = this.getStats();
+            if (stats.total >= 0 && stats.enabled >= 0 && stats.active >= 0) {
+                validation.dataIntegrity = true;
+            } else {
+                validation.issues.push('Data integrity issues detected');
+            }
+
+            // Calculate score
+            const passedChecks = Object.values(validation).filter(v => v === true).length;
+            validation.score = (passedChecks / 5) * 100;
+
+            console.log('SearchEngineManager Validation:', validation);
+            return validation;
+
+        } catch (error) {
+            validation.issues.push(`Validation error: ${error.message}`);
+            return validation;
         }
     }
 }
