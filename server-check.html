@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperSearch Server Check</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .check-card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .test-result { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .file-list { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .file-list ul { margin: 0; padding-left: 20px; }
+    </style>
+</head>
+<body>
+    <div class="check-card">
+        <h1>🌐 SuperSearch Server Check</h1>
+        <p>This page verifies that SuperSearch is properly configured for web server deployment.</p>
+        
+        <div id="status" class="status info">
+            🔄 Running server compatibility checks...
+        </div>
+        
+        <div id="results"></div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="runAllChecks()">🔍 Run All Checks</button>
+            <button onclick="checkFiles()">📁 Check Files</button>
+            <button onclick="checkModules()">🧩 Check Modules</button>
+            <button onclick="checkSecurity()">🔒 Check Security</button>
+            <button onclick="openApp()">🚀 Open SuperSearch</button>
+        </div>
+    </div>
+
+    <script>
+        let checkResults = [];
+        
+        function addResult(message, type = 'info') {
+            checkResults.push({ message, type, timestamp: new Date().toLocaleTimeString() });
+            updateResults();
+        }
+        
+        function updateResults() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = checkResults.map(result => 
+                `<div class="test-result ${result.type}">
+                    [${result.timestamp}] ${result.message}
+                </div>`
+            ).join('');
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+        
+        window.runAllChecks = async function() {
+            checkResults = [];
+            updateStatus('🔄 Running comprehensive server checks...', 'info');
+            
+            await checkFiles();
+            await checkModules();
+            await checkSecurity();
+            
+            updateStatus('✅ Server checks completed!', 'success');
+        };
+        
+        window.checkFiles = async function() {
+            addResult('📁 Checking file accessibility...', 'info');
+            
+            const requiredFiles = [
+                'index.html',
+                'css/style.css',
+                'js/app.js',
+                'js/modules/dbManager.js',
+                'js/modules/searchEngine.js',
+                'js/modules/searchHandler.js',
+                'js/modules/uiManager.js',
+                'js/modules/configManager.js',
+                'js/modules/notificationManager.js',
+                'js/modules/keyboardManager.js',
+                'assets/data/default-engines.json'
+            ];
+            
+            let allFilesOk = true;
+            
+            for (const file of requiredFiles) {
+                try {
+                    const response = await fetch(file, { method: 'HEAD' });
+                    if (response.ok) {
+                        addResult(`✅ ${file}: Accessible`, 'success');
+                    } else {
+                        addResult(`❌ ${file}: Not accessible (${response.status})`, 'error');
+                        allFilesOk = false;
+                    }
+                } catch (error) {
+                    addResult(`❌ ${file}: Error (${error.message})`, 'error');
+                    allFilesOk = false;
+                }
+            }
+            
+            if (allFilesOk) {
+                addResult('✅ All required files are accessible', 'success');
+            } else {
+                addResult('⚠️ Some files are not accessible - check web server configuration', 'warning');
+            }
+        };
+        
+        window.checkModules = async function() {
+            addResult('🧩 Checking ES6 module support...', 'info');
+            
+            try {
+                // Test if ES6 modules work
+                const { SuperSearchApp } = await import('./js/app.js');
+                addResult('✅ ES6 modules loading successfully', 'success');
+                
+                // Test module instantiation
+                const app = new SuperSearchApp();
+                addResult('✅ SuperSearchApp class instantiation works', 'success');
+                
+                // Check if we're running over HTTP/HTTPS
+                if (location.protocol === 'file:') {
+                    addResult('⚠️ Running from file:// protocol - some features may not work', 'warning');
+                    addResult('💡 Recommendation: Use a web server (http://localhost)', 'info');
+                } else {
+                    addResult(`✅ Running over ${location.protocol} - optimal for web features`, 'success');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Module loading failed: ${error.message}`, 'error');
+                addResult('💡 Check browser console for detailed error information', 'info');
+            }
+        };
+        
+        window.checkSecurity = async function() {
+            addResult('🔒 Checking security configuration...', 'info');
+            
+            // Check HTTPS
+            if (location.protocol === 'https:') {
+                addResult('✅ HTTPS enabled - secure connection', 'success');
+            } else if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                addResult('ℹ️ HTTP on localhost - acceptable for development', 'info');
+            } else {
+                addResult('⚠️ HTTP in production - consider enabling HTTPS', 'warning');
+            }
+            
+            // Check Content Security Policy
+            const cspMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+            if (cspMeta) {
+                addResult('✅ Content Security Policy configured', 'success');
+            } else {
+                addResult('ℹ️ No CSP meta tag found - may be configured at server level', 'info');
+            }
+            
+            // Check for .htaccess (Apache)
+            try {
+                const response = await fetch('.htaccess', { method: 'HEAD' });
+                if (response.status === 403) {
+                    addResult('✅ .htaccess file protected (403 Forbidden)', 'success');
+                } else if (response.status === 404) {
+                    addResult('ℹ️ .htaccess file not found - may not be needed', 'info');
+                } else {
+                    addResult('⚠️ .htaccess file accessible - should be protected', 'warning');
+                }
+            } catch (error) {
+                addResult('ℹ️ Could not check .htaccess accessibility', 'info');
+            }
+        };
+        
+        window.openApp = function() {
+            window.location.href = 'index.html';
+        };
+        
+        // Auto-run checks on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runAllChecks, 1000);
+        });
+        
+        // Display server info
+        window.addEventListener('DOMContentLoaded', () => {
+            const serverInfo = `
+                <div class="file-list">
+                    <h4>📊 Server Information</h4>
+                    <ul>
+                        <li><strong>URL:</strong> ${location.href}</li>
+                        <li><strong>Protocol:</strong> ${location.protocol}</li>
+                        <li><strong>Host:</strong> ${location.host}</li>
+                        <li><strong>User Agent:</strong> ${navigator.userAgent}</li>
+                        <li><strong>Timestamp:</strong> ${new Date().toISOString()}</li>
+                    </ul>
+                </div>
+            `;
+            document.querySelector('.check-card').insertAdjacentHTML('beforeend', serverInfo);
+        });
+    </script>
+</body>
+</html>
