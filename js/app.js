@@ -16,6 +16,11 @@ class SuperSearchApp {
         // UI element references
         this.elements = {};
         
+        // Search state
+        this.searchSuggestions = [];
+        this.selectedSuggestionIndex = -1;
+        this.showingSuggestions = false;
+        
         // Debounced functions
         this.debouncedSearch = Utils.debounce(this.handleSearch.bind(this), 300);
         this.debouncedSuggestions = Utils.debounce(this.updateSearchSuggestions.bind(this), 200);
@@ -43,6 +48,9 @@ class SuperSearchApp {
             
             // Initialize search engines UI
             await this.updateEngineSelection();
+            
+            // Initialize selected count
+            this.updateSelectedCount();
             
             // Hide loading state
             this.hideLoading();
@@ -72,9 +80,17 @@ class SuperSearchApp {
             
             // Engine selection
             engineSelection: document.querySelector('.engine-selection'),
+            engineGrid: document.getElementById('engineGrid'),
             googleEngine: document.getElementById('googleEngine'),
             duckduckgoEngine: document.getElementById('duckduckgoEngine'),
             bingEngine: document.getElementById('bingEngine'),
+            selectAllEngines: document.getElementById('selectAllEngines'),
+            deselectAllEngines: document.getElementById('deselectAllEngines'),
+            selectedCount: document.getElementById('selectedCount'),
+            searchStatus: document.getElementById('searchStatus'),
+            
+            // Search suggestions
+            searchSuggestions: document.getElementById('searchSuggestions'),
             
             // Results
             resultsSection: document.getElementById('resultsSection'),
@@ -140,13 +156,28 @@ class SuperSearchApp {
 
         // Search input
         if (this.elements.searchInput) {
-            this.elements.searchInput.addEventListener('input', () => {
+            this.elements.searchInput.addEventListener('input', (e) => {
+                this.handleSearchInput(e);
                 this.debouncedSuggestions();
+            });
+            
+            this.elements.searchInput.addEventListener('keydown', (e) => {
+                this.handleSearchKeydown(e);
+            });
+            
+            this.elements.searchInput.addEventListener('focus', () => {
+                this.handleSearchFocus();
+            });
+            
+            this.elements.searchInput.addEventListener('blur', () => {
+                this.handleSearchBlur();
             });
         }
 
-        // Engine checkboxes
+        // Engine checkboxes and controls
         this.setupEngineCheckboxListeners();
+        this.elements.selectAllEngines?.addEventListener('click', () => this.selectAllEngines());
+        this.elements.deselectAllEngines?.addEventListener('click', () => this.deselectAllEngines());
 
         // Navigation buttons
         this.elements.settingsBtn?.addEventListener('click', () => this.openSettingsModal());
@@ -186,7 +217,10 @@ class SuperSearchApp {
         checkboxes.forEach(id => {
             const checkbox = this.elements[id];
             if (checkbox) {
-                checkbox.addEventListener('change', () => this.updateActiveEngines());
+                checkbox.addEventListener('change', () => {
+                    this.updateActiveEngines();
+                    this.updateSelectedCount();
+                });
             }
         });
     }
@@ -196,21 +230,52 @@ class SuperSearchApp {
      */
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            // Escape key - close modals
+            // Don't handle shortcuts when typing in input fields (except for specific ones)
+            const isInputFocused = document.activeElement && 
+                ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+            
+            // Escape key - close modals or suggestions
             if (e.key === 'Escape') {
-                this.closeAllModals();
+                if (this.showingSuggestions) {
+                    this.hideSuggestions();
+                } else {
+                    this.closeAllModals();
+                }
             }
             
             // Ctrl/Cmd + K - focus search
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
                 this.elements.searchInput?.focus();
+                return;
             }
             
             // Ctrl/Cmd + Enter - search all engines
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
-                this.searchAllEngines();
+                if (isInputFocused) {
+                    this.searchAllEngines();
+                }
+                return;
+            }
+            
+            // Don't handle other shortcuts when not in search input
+            if (!isInputFocused || document.activeElement !== this.elements.searchInput) {
+                return;
+            }
+            
+            // Handle arrow keys for suggestions navigation
+            if (this.showingSuggestions) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.navigateSuggestions(1);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.navigateSuggestions(-1);
+                } else if (e.key === 'Tab') {
+                    e.preventDefault();
+                    this.selectCurrentSuggestion();
+                }
             }
         });
     }
@@ -221,43 +286,122 @@ class SuperSearchApp {
     async handleSearch() {
         try {
             const query = this.elements.searchInput?.value?.trim();
-            if (!query) {
-                Utils.showNotification('Please enter a search query', 'warning');
+            
+            // Basic validation
+            const validationResult = this.validateSearchInput(query);
+            if (!validationResult.valid) {
+                this.showValidationError(validationResult.error);
                 return;
             }
 
-            // Validate query
+            // Advanced validation using search handler
             const validation = this.searchHandler.validateQuery(query);
             if (!validation.valid) {
-                Utils.showNotification(validation.errors.join(', '), 'danger');
+                this.showValidationError(validation.errors.join(', '));
                 return;
             }
 
             // Show warnings if any
             if (validation.warnings.length > 0) {
                 validation.warnings.forEach(warning => {
-                    Utils.showNotification(warning, 'warning');
+                    Utils.showNotification(warning, 'warning', 3000);
                 });
             }
 
             // Get active engines
             const activeEngines = this.getSelectedEngines();
             if (activeEngines.length === 0) {
-                Utils.showNotification('Please select at least one search engine', 'warning');
+                this.showValidationError('Please select at least one search engine');
                 return;
             }
+
+            // Clear any previous validation errors
+            this.clearValidationError();
 
             // Start search
             this.showSearchResults();
             this.showLoadingIndicator();
+            this.updateSearchStatus('Searching...');
             
             this.currentSearch = await this.searchHandler.searchMultiple(query, activeEngines.map(e => e.id));
             
         } catch (error) {
             Utils.logError(error, 'Search failed');
-            Utils.showNotification('Search failed: ' + error.message, 'danger');
+            this.showValidationError('Search failed: ' + error.message);
             this.hideLoadingIndicator();
+            this.updateSearchStatus();
         }
+    }
+
+    /**
+     * Validate search input
+     */
+    validateSearchInput(query) {
+        // Empty query
+        if (!query) {
+            return {
+                valid: false,
+                error: 'Please enter a search query'
+            };
+        }
+
+        // Query too short
+        if (query.length < 1) {
+            return {
+                valid: false,
+                error: 'Search query is too short'
+            };
+        }
+
+        // Query too long
+        if (query.length > 1000) {
+            return {
+                valid: false,
+                error: 'Search query is too long (maximum 1000 characters)'
+            };
+        }
+
+        // Only whitespace
+        if (!/\S/.test(query)) {
+            return {
+                valid: false,
+                error: 'Search query cannot contain only whitespace'
+            };
+        }
+
+        // Valid
+        return { valid: true };
+    }
+
+    /**
+     * Show validation error
+     */
+    showValidationError(message) {
+        // Update search input styling
+        if (this.elements.searchInput) {
+            this.elements.searchInput.classList.add('uk-form-danger');
+            this.elements.searchInput.setAttribute('aria-invalid', 'true');
+        }
+
+        // Update status
+        this.updateSearchStatus(message);
+
+        // Show notification
+        Utils.showNotification(message, 'danger');
+
+        // Focus input
+        this.elements.searchInput?.focus();
+    }
+
+    /**
+     * Clear validation error
+     */
+    clearValidationError() {
+        if (this.elements.searchInput) {
+            this.elements.searchInput.classList.remove('uk-form-danger');
+            this.elements.searchInput.removeAttribute('aria-invalid');
+        }
+        this.updateSearchStatus();
     }
 
     /**
@@ -495,11 +639,276 @@ class SuperSearchApp {
     }
 
     /**
+     * Handle search input changes
+     */
+    handleSearchInput(event) {
+        const query = event.target.value;
+        this.updateSearchStatus(query);
+        
+        // Update character count if approaching limit
+        if (query.length > 900) {
+            const remaining = 1000 - query.length;
+            this.updateSearchStatus(`${remaining} characters remaining`);
+        }
+    }
+
+    /**
+     * Handle search input keydown events
+     */
+    handleSearchKeydown(event) {
+        const query = event.target.value;
+        
+        // Enter key handling
+        if (event.key === 'Enter') {
+            if (this.showingSuggestions && this.selectedSuggestionIndex >= 0) {
+                event.preventDefault();
+                this.selectCurrentSuggestion();
+            } else {
+                // Let the form submission handle the search
+                this.hideSuggestions();
+            }
+        }
+    }
+
+    /**
+     * Handle search input focus
+     */
+    handleSearchFocus() {
+        const query = this.elements.searchInput?.value?.trim();
+        if (query && query.length >= 2) {
+            this.debouncedSuggestions();
+        }
+    }
+
+    /**
+     * Handle search input blur
+     */
+    handleSearchBlur() {
+        // Delay hiding suggestions to allow for clicks
+        setTimeout(() => {
+            this.hideSuggestions();
+        }, 150);
+    }
+
+    /**
      * Update search suggestions
      */
     async updateSearchSuggestions() {
-        // Implementation would go here for autocomplete suggestions
-        // For now, this is a placeholder
+        const query = this.elements.searchInput?.value?.trim();
+        
+        if (!query || query.length < 2) {
+            this.hideSuggestions();
+            return;
+        }
+
+        try {
+            const suggestions = await this.searchHandler.getSearchSuggestions(query, 5);
+            
+            if (suggestions.length > 0) {
+                this.showSuggestions(suggestions, query);
+            } else {
+                this.hideSuggestions();
+            }
+        } catch (error) {
+            Utils.logError(error, 'Failed to get search suggestions');
+            this.hideSuggestions();
+        }
+    }
+
+    /**
+     * Show search suggestions
+     */
+    showSuggestions(suggestions, query) {
+        const container = this.elements.searchSuggestions;
+        if (!container) return;
+
+        this.searchSuggestions = suggestions;
+        this.selectedSuggestionIndex = -1;
+        
+        container.innerHTML = '';
+        
+        suggestions.forEach((suggestion, index) => {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item';
+            item.setAttribute('data-index', index);
+            
+            // Highlight matching text
+            const highlightedText = this.highlightSearchTerm(suggestion, query);
+            
+            item.innerHTML = `
+                <span class="suggestion-icon" uk-icon="icon: search; ratio: 0.8"></span>
+                <span class="suggestion-text">${highlightedText}</span>
+            `;
+            
+            item.addEventListener('click', () => {
+                this.selectSuggestion(suggestion);
+            });
+            
+            container.appendChild(item);
+        });
+        
+        container.classList.add('uk-open');
+        this.showingSuggestions = true;
+    }
+
+    /**
+     * Hide search suggestions
+     */
+    hideSuggestions() {
+        const container = this.elements.searchSuggestions;
+        if (container) {
+            container.classList.remove('uk-open');
+            container.innerHTML = '';
+        }
+        
+        this.showingSuggestions = false;
+        this.selectedSuggestionIndex = -1;
+        this.searchSuggestions = [];
+    }
+
+    /**
+     * Navigate through suggestions with arrow keys
+     */
+    navigateSuggestions(direction) {
+        if (!this.showingSuggestions || this.searchSuggestions.length === 0) return;
+        
+        const previousIndex = this.selectedSuggestionIndex;
+        this.selectedSuggestionIndex += direction;
+        
+        // Wrap around
+        if (this.selectedSuggestionIndex < 0) {
+            this.selectedSuggestionIndex = this.searchSuggestions.length - 1;
+        } else if (this.selectedSuggestionIndex >= this.searchSuggestions.length) {
+            this.selectedSuggestionIndex = 0;
+        }
+        
+        // Update visual selection
+        this.updateSuggestionSelection(previousIndex);
+    }
+
+    /**
+     * Update visual selection of suggestions
+     */
+    updateSuggestionSelection(previousIndex) {
+        const container = this.elements.searchSuggestions;
+        if (!container) return;
+        
+        const items = container.querySelectorAll('.suggestion-item');
+        
+        // Remove previous selection
+        if (previousIndex >= 0 && items[previousIndex]) {
+            items[previousIndex].classList.remove('uk-active');
+        }
+        
+        // Add current selection
+        if (this.selectedSuggestionIndex >= 0 && items[this.selectedSuggestionIndex]) {
+            items[this.selectedSuggestionIndex].classList.add('uk-active');
+        }
+    }
+
+    /**
+     * Select current suggestion
+     */
+    selectCurrentSuggestion() {
+        if (this.selectedSuggestionIndex >= 0 && this.searchSuggestions[this.selectedSuggestionIndex]) {
+            this.selectSuggestion(this.searchSuggestions[this.selectedSuggestionIndex]);
+        }
+    }
+
+    /**
+     * Select a specific suggestion
+     */
+    selectSuggestion(suggestion) {
+        if (this.elements.searchInput) {
+            this.elements.searchInput.value = suggestion;
+        }
+        this.hideSuggestions();
+        this.elements.searchInput?.focus();
+    }
+
+    /**
+     * Highlight search term in suggestion text
+     */
+    highlightSearchTerm(text, searchTerm) {
+        if (!searchTerm) return Utils.sanitizeHtml(text);
+        
+        const escapedTerm = Utils.escapeRegExp(searchTerm);
+        const regex = new RegExp(`(${escapedTerm})`, 'gi');
+        const sanitizedText = Utils.sanitizeHtml(text);
+        
+        return sanitizedText.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    /**
+     * Update search status message
+     */
+    updateSearchStatus(message = null) {
+        const statusElement = this.elements.searchStatus;
+        if (!statusElement) return;
+        
+        if (message) {
+            statusElement.textContent = message;
+            statusElement.style.color = 'var(--warning-color)';
+        } else {
+            const selectedCount = this.getSelectedEngines().length;
+            if (selectedCount === 0) {
+                statusElement.textContent = 'Select at least one search engine';
+                statusElement.style.color = 'var(--accent-color)';
+            } else {
+                statusElement.textContent = 'Ready to search';
+                statusElement.style.color = 'var(--text-muted)';
+            }
+        }
+    }
+
+    /**
+     * Select all engines
+     */
+    selectAllEngines() {
+        const engines = this.engineManager.getEnabledEngines();
+        engines.forEach(engine => {
+            const checkbox = document.getElementById(`${engine.id}Engine`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        this.updateActiveEngines();
+        this.updateSelectedCount();
+    }
+
+    /**
+     * Deselect all engines
+     */
+    deselectAllEngines() {
+        const engines = this.engineManager.getEnabledEngines();
+        engines.forEach(engine => {
+            const checkbox = document.getElementById(`${engine.id}Engine`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        });
+        this.updateActiveEngines();
+        this.updateSelectedCount();
+    }
+
+    /**
+     * Update selected engines count display
+     */
+    updateSelectedCount() {
+        const count = this.getSelectedEngines().length;
+        const countElement = this.elements.selectedCount;
+        
+        if (countElement) {
+            countElement.textContent = `${count} selected`;
+            
+            if (count === 0) {
+                countElement.style.color = 'var(--accent-color)';
+            } else {
+                countElement.style.color = 'var(--text-muted)';
+            }
+        }
+        
+        this.updateSearchStatus();
     }
 
     /**

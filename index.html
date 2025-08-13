@@ -54,7 +54,7 @@
                 
                 <!-- Search Form -->
                 <form class="search-form uk-margin-large" role="search">
-                    <div class="uk-inline uk-width-1-1 uk-width-2-3@m">
+                    <div class="search-input-container uk-inline uk-width-1-1 uk-width-2-3@m">
                         <span class="uk-form-icon" uk-icon="icon: search"></span>
                         <input 
                             class="uk-input uk-form-large" 
@@ -63,31 +63,64 @@
                             placeholder="Enter your search query..."
                             autocomplete="off"
                             aria-label="Search query"
+                            aria-describedby="search-help"
+                            maxlength="1000"
                             required>
+                        
+                        <!-- Search Suggestions Dropdown -->
+                        <div class="search-suggestions" id="searchSuggestions">
+                            <!-- Suggestions will be populated dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Search Help Text -->
+                    <div id="search-help" class="uk-text-small uk-text-muted uk-margin-small-top uk-text-center">
+                        Press Ctrl+K to focus search, Enter to search, or Ctrl+Enter to search all engines
                     </div>
                     
                     <!-- Search Engines Selection -->
                     <div class="engine-selection uk-margin-medium-top" role="group" aria-labelledby="engine-selection-label">
-                        <h2 id="engine-selection-label" class="uk-h4 uk-margin-small-bottom">Select Search Engines:</h2>
-                        <div class="uk-flex uk-flex-center uk-flex-wrap uk-child-width-auto uk-grid-small" uk-grid>
+                        <!-- Engine Controls -->
+                        <div class="engine-controls">
+                            <div class="engine-controls-left">
+                                <h2 id="engine-selection-label" class="uk-h4 uk-margin-remove">Select Search Engines:</h2>
+                            </div>
+                            <div class="engine-controls-right">
+                                <button type="button" id="selectAllEngines" class="uk-button uk-button-small uk-button-default">
+                                    Select All
+                                </button>
+                                <button type="button" id="deselectAllEngines" class="uk-button uk-button-small uk-button-default uk-margin-small-left">
+                                    Deselect All
+                                </button>
+                                <span class="selected-count uk-margin-small-left" id="selectedCount">3 selected</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Engine Grid -->
+                        <div class="engine-grid uk-flex uk-flex-center uk-flex-wrap uk-child-width-auto uk-grid-small" uk-grid id="engineGrid">
                             <div>
-                                <label class="engine-checkbox">
-                                    <input class="uk-checkbox" type="checkbox" id="googleEngine" checked>
-                                    <span class="uk-margin-small-left">Google</span>
+                                <label class="engine-checkbox" for="googleEngine">
+                                    <input type="checkbox" id="googleEngine" checked>
+                                    <span>Google</span>
                                 </label>
                             </div>
                             <div>
-                                <label class="engine-checkbox">
-                                    <input class="uk-checkbox" type="checkbox" id="duckduckgoEngine" checked>
-                                    <span class="uk-margin-small-left">DuckDuckGo</span>
+                                <label class="engine-checkbox" for="duckduckgoEngine">
+                                    <input type="checkbox" id="duckduckgoEngine" checked>
+                                    <span>DuckDuckGo</span>
                                 </label>
                             </div>
                             <div>
-                                <label class="engine-checkbox">
-                                    <input class="uk-checkbox" type="checkbox" id="bingEngine" checked>
-                                    <span class="uk-margin-small-left">Bing</span>
+                                <label class="engine-checkbox" for="bingEngine">
+                                    <input type="checkbox" id="bingEngine" checked>
+                                    <span>Bing</span>
                                 </label>
                             </div>
+                        </div>
+                        
+                        <!-- Search Status -->
+                        <div class="search-status uk-margin-small-top uk-text-center uk-text-small uk-text-muted" id="searchStatus">
+                            Ready to search
                         </div>
                     </div>
 
