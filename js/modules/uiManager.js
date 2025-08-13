@@ -144,6 +144,11 @@ export class UIManager {
      * Initialize UI state
      */
     async initializeUIState() {
+        // Initialize notification manager
+        if (this.modules.notification) {
+            this.modules.notification.init();
+        }
+
         // Load and display search engines
         await this.loadSearchEngines();
 
@@ -180,7 +185,7 @@ export class UIManager {
 
         const query = this.elements.searchInput.value.trim();
         if (!query) {
-            this.showNotification('Please enter a search query', 'warning');
+            this.modules.notification.warning('Please enter a search query');
             return;
         }
 
@@ -209,7 +214,7 @@ export class UIManager {
 
         const query = this.elements.searchInput.value.trim();
         if (!query) {
-            this.showNotification('Please enter a search query', 'warning');
+            this.modules.notification.warning('Please enter a search query');
             return;
         }
 
@@ -645,44 +650,17 @@ export class UIManager {
     }
 
     // ========================================
-    // Notifications
+    // Notifications (Delegated to NotificationManager)
     // ========================================
 
     /**
-     * Show a notification
+     * Show a notification (delegates to notification manager)
      */
-    showNotification(message, type = 'info', duration = 5000) {
-        if (!this.elements.notificationContainer) return;
-
-        const notification = document.createElement('div');
-        notification.className = `toast align-items-center text-white bg-${type} border-0`;
-        notification.setAttribute('role', 'alert');
-        notification.setAttribute('aria-live', 'assertive');
-        notification.setAttribute('aria-atomic', 'true');
-
-        notification.innerHTML = `
-            <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        `;
-
-        this.elements.notificationContainer.appendChild(notification);
-
-        // Initialize and show the toast
-        if (typeof bootstrap !== 'undefined') {
-            const toast = new bootstrap.Toast(notification, {
-                autohide: true,
-                delay: duration
-            });
-            toast.show();
-
-            // Remove from DOM after hiding
-            notification.addEventListener('hidden.bs.toast', () => {
-                notification.remove();
-            });
+    showNotification(message, type = 'info', options = {}) {
+        if (this.modules.notification) {
+            return this.modules.notification.show(message, type, options);
+        } else {
+            console.log(`📢 ${type.toUpperCase()}: ${message}`);
         }
     }
 
