@@ -73,6 +73,9 @@ export class SearchHandler {
                 }
             });
 
+            // Save search to history
+            await this.saveSearchHistory(sanitizedQuery, fullEngines);
+
             console.log(`✅ SearchHandler: Search completed for "${query}"`);
             return processedResults;
 
@@ -254,5 +257,28 @@ export class SearchHandler {
             activeSearches: this.activeSearches.size,
             searchTimeout: this.searchTimeout
         };
+    }
+
+    /**
+     * Save search to history
+     * @private
+     */
+    async saveSearchHistory(query, engines) {
+        try {
+            const historyItem = {
+                query: query,
+                engines: engines.map(engine => engine.name),
+                engineIds: engines.map(engine => engine.id),
+                timestamp: new Date().toISOString(),
+                id: Date.now() // Simple ID generation
+            };
+
+            await this.database.create('searchHistory', historyItem);
+            console.log(`📝 SearchHandler: Saved search history for "${query}"`);
+
+        } catch (error) {
+            console.warn('SearchHandler: Failed to save search history:', error);
+            // Don't throw error - search history is not critical
+        }
     }
 }

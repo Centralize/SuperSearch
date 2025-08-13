@@ -1012,6 +1012,192 @@ export class UIManager {
     }
 
     /**
+     * Set up the help modal with content
+     */
+    setupHelpModal() {
+        const helpContent = document.getElementById('help-content');
+        if (!helpContent) return;
+
+        const shortcuts = this.modules.keyboard ? this.modules.keyboard.getAllShortcuts() : [];
+
+        helpContent.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Getting Started</h5>
+                    <ol>
+                        <li>Enter your search query in the search box</li>
+                        <li>Select one or more search engines</li>
+                        <li>Click "Search All Engines" or press Enter</li>
+                        <li>Results will open in new tabs</li>
+                    </ol>
+
+                    <h5>Managing Search Engines</h5>
+                    <ul>
+                        <li><strong>Add:</strong> Click "Manage Engines" to add custom search engines</li>
+                        <li><strong>Edit:</strong> Click the pencil icon on any engine</li>
+                        <li><strong>Delete:</strong> Click the trash icon on any engine</li>
+                        <li><strong>Default:</strong> Set an engine as default in its edit form</li>
+                    </ul>
+                </div>
+
+                <div class="col-md-6">
+                    <h5>Keyboard Shortcuts</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                ${shortcuts.map(shortcut => `
+                                    <tr>
+                                        <td><kbd>${shortcut.key}</kbd></td>
+                                        <td>${shortcut.description}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h5>Tips</h5>
+                    <ul>
+                        <li>Use <kbd>Ctrl+K</kbd> to quickly focus the search box</li>
+                        <li>Press <kbd>1-9</kbd> to quickly select engines</li>
+                        <li>Green badge indicates the default engine</li>
+                        <li>All data is stored locally in your browser</li>
+                        <li>Export your configuration to backup your settings</li>
+                    </ul>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="text-center">
+                <h5>About SuperSearch</h5>
+                <p>SuperSearch is a multi-engine search platform that allows you to search across multiple search engines simultaneously. All data is stored locally in your browser for privacy.</p>
+                <p><strong>Version:</strong> 1.0.0 | <strong>Built with:</strong> HTML5, JavaScript, Bootstrap 5, IndexedDB</p>
+            </div>
+        `;
+    }
+
+    /**
+     * Set up event listeners for settings modal
+     */
+    setupSettingsEventListeners() {
+        // Export configuration
+        const exportBtn = document.getElementById('export-config-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', async () => {
+                try {
+                    await this.modules.config.downloadConfiguration();
+                    this.modules.notification.success('Configuration exported successfully!');
+                } catch (error) {
+                    this.modules.notification.error(`Export failed: ${error.message}`);
+                }
+            });
+        }
+
+        // Import configuration
+        const importBtn = document.getElementById('import-config-btn');
+        const fileInput = document.getElementById('import-file-input');
+
+        if (importBtn && fileInput) {
+            importBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const config = JSON.parse(text);
+
+                    const confirmed = confirm('Import configuration? This will merge with your existing settings.');
+                    if (confirmed) {
+                        await this.modules.config.importConfiguration(config, { mergeEngines: true, mergePreferences: true });
+                        this.modules.notification.success('Configuration imported successfully!');
+                        await this.loadSearchEngines();
+                    }
+                } catch (error) {
+                    this.modules.notification.error(`Import failed: ${error.message}`);
+                }
+
+                // Reset file input
+                event.target.value = '';
+            });
+        }
+
+        // Reset settings
+        const resetBtn = document.getElementById('reset-settings-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', async () => {
+                const confirmed = confirm('Reset all settings to defaults? This cannot be undone.');
+                if (confirmed) {
+                    try {
+                        await this.modules.config.resetPreferences();
+                        this.modules.notification.success('Settings reset to defaults!');
+                        this.setupSettingsModal(); // Refresh the modal
+                    } catch (error) {
+                        this.modules.notification.error(`Reset failed: ${error.message}`);
+                    }
+                }
+            });
+        }
+
+        // Clear all data
+        const clearBtn = document.getElementById('clear-data-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', async () => {
+                const confirmed = confirm('Clear ALL data including engines and history? This cannot be undone.');
+                if (confirmed) {
+                    try {
+                        await this.modules.database.deleteDatabase();
+                        this.modules.notification.success('All data cleared! Please refresh the page.');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    } catch (error) {
+                        this.modules.notification.error(`Clear failed: ${error.message}`);
+                    }
+                }
+            });
+        }
+
+        // Save settings on form change
+        const settingsForm = document.getElementById('settings-form');
+        if (settingsForm) {
+            settingsForm.addEventListener('change', async () => {
+                await this.saveSettings();
+            });
+        }
+    }
+
+    /**
+     * Save settings from the settings form
+     */
+    async saveSettings() {
+        const form = document.getElementById('settings-form');
+        if (!form) return;
+
+        try {
+            const formData = new FormData(form);
+
+            // Update preferences
+            await this.modules.config.setPreference('defaultSearchMode', formData.get('defaultSearchMode'));
+            await this.modules.config.setPreference('openInNewTab', formData.get('openInNewTab') === 'on');
+            await this.modules.config.setPreference('autoSelectEngines', formData.get('autoSelectEngines') === 'on');
+            await this.modules.config.setPreference('enableHistory', formData.get('enableHistory') === 'on');
+            await this.modules.config.setPreference('maxHistoryItems', parseInt(formData.get('maxHistoryItems')));
+            await this.modules.config.setPreference('showNotifications', formData.get('showNotifications') === 'on');
+            await this.modules.config.setPreference('confirmDeletion', formData.get('confirmDeletion') === 'on');
+
+            this.modules.notification.success('Settings saved successfully!');
+
+        } catch (error) {
+            console.error('Failed to save settings:', error);
+            this.modules.notification.error(`Failed to save settings: ${error.message}`);
+        }
+    }
+
+    /**
      * Set up the history modal with content
      */
     async setupHistoryModal() {
