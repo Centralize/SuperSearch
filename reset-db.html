@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperSearch Database Reset</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .reset-card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        button:hover { background: #c82333; }
+        .safe-btn { background: #28a745; }
+        .safe-btn:hover { background: #218838; }
+        .info-btn { background: #17a2b8; }
+        .info-btn:hover { background: #138496; }
+    </style>
+</head>
+<body>
+    <div class="reset-card">
+        <h1>🗄️ SuperSearch Database Reset</h1>
+        <p>This tool helps fix database issues by resetting the IndexedDB database.</p>
+        
+        <div id="status" class="status info">
+            🔄 Ready to diagnose or reset database...
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button class="info-btn" onclick="diagnoseDatabase()">🔍 Diagnose Database</button>
+            <button class="safe-btn" onclick="resetDatabase()">🔄 Reset Database</button>
+            <button class="info-btn" onclick="goToApp()">🚀 Open SuperSearch</button>
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 14px; color: #666;">
+            <p><strong>What does reset do?</strong></p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Deletes the current IndexedDB database</li>
+                <li>Recreates the database with correct schema</li>
+                <li>Restores default search engines</li>
+                <li>Clears all user data (history, settings)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SuperSearchApp } from './js/app.js';
+        
+        let app;
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+        
+        // Initialize app for database access
+        async function initApp() {
+            if (app) return app;
+            
+            try {
+                app = new SuperSearchApp();
+                // Only initialize database, not full UI
+                app.modules = {};
+                const { DatabaseManager } = await import('./js/modules/dbManager.js');
+                app.modules.database = new DatabaseManager();
+                await app.modules.database.init();
+                return app;
+            } catch (error) {
+                console.error('Failed to initialize app:', error);
+                throw error;
+            }
+        }
+        
+        window.diagnoseDatabase = async function() {
+            updateStatus('🔍 Diagnosing database...', 'info');
+            
+            try {
+                const app = await initApp();
+                const diagnosis = await app.modules.database.diagnoseDatabase();
+                
+                let message = `📊 Database Diagnosis:\n`;
+                message += `Version: ${diagnosis.version} (expected: ${diagnosis.expectedVersion})\n`;
+                message += `Initialized: ${diagnosis.isInitialized}\n`;
+                message += `Connected: ${diagnosis.dbExists}\n\n`;
+                
+                if (diagnosis.issues.length === 0) {
+                    message += '✅ No issues found!';
+                    updateStatus(message, 'success');
+                } else {
+                    message += `⚠️ ${diagnosis.issues.length} issues found:\n`;
+                    diagnosis.issues.forEach(issue => {
+                        message += `• ${issue}\n`;
+                    });
+                    updateStatus(message, 'warning');
+                }
+                
+                console.log('Database diagnosis:', diagnosis);
+                
+            } catch (error) {
+                updateStatus(`❌ Diagnosis failed: ${error.message}`, 'error');
+                console.error('Diagnosis error:', error);
+            }
+        };
+        
+        window.resetDatabase = async function() {
+            const confirmed = confirm(
+                'Are you sure you want to reset the database?\n\n' +
+                'This will:\n' +
+                '• Delete all search engines\n' +
+                '• Clear search history\n' +
+                '• Reset all settings\n' +
+                '• Restore default search engines\n\n' +
+                'This action cannot be undone!'
+            );
+            
+            if (!confirmed) {
+                updateStatus('❌ Database reset cancelled', 'info');
+                return;
+            }
+            
+            updateStatus('🔄 Resetting database...', 'warning');
+            
+            try {
+                const app = await initApp();
+                
+                // Reset the database
+                await app.modules.database.resetDatabase();
+                
+                // Reinitialize search engines
+                const { SearchEngineManager } = await import('./js/modules/searchEngine.js');
+                const searchEngine = new SearchEngineManager(app.modules.database);
+                await searchEngine.init();
+                
+                updateStatus('✅ Database reset successfully! Default search engines restored.', 'success');
+                
+                // Offer to open the app
+                setTimeout(() => {
+                    if (confirm('Database reset complete! Would you like to open SuperSearch now?')) {
+                        goToApp();
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                updateStatus(`❌ Reset failed: ${error.message}`, 'error');
+                console.error('Reset error:', error);
+            }
+        };
+        
+        window.goToApp = function() {
+            window.location.href = 'index.html';
+        };
+        
+        // Auto-diagnose on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(diagnoseDatabase, 1000);
+        });
+    </script>
+</body>
+</html>
