@@ -75,6 +75,301 @@ class ConfigManager {
     }
 
     /**
+     * Generate export data with enhanced options
+     * @param {Object} options - Export options
+     * @returns {Promise<Object>} Export data
+     */
+    async generateExportData(options = {}) {
+        try {
+            const {
+                includeEngines = true,
+                includePreferences = true,
+                includeHistory = false,
+                includeMetadata = true
+            } = options;
+
+            const exportData = {
+                version: this.configVersion,
+                exportedAt: new Date().toISOString(),
+                exportOptions: {
+                    engines: includeEngines,
+                    preferences: includePreferences,
+                    history: includeHistory
+                }
+            };
+
+            // Add metadata if requested
+            if (includeMetadata) {
+                exportData.metadata = await this.generateExportMetadata();
+            }
+
+            // Add engines if requested
+            if (includeEngines) {
+                const engines = await this.dbManager.getAllEngines();
+                exportData.engines = engines.map(engine => ({
+                    ...engine,
+                    // Add export-specific metadata
+                    exportedAt: new Date().toISOString(),
+                    originalId: engine.id // Preserve original ID for import reference
+                }));
+            }
+
+            // Add preferences if requested
+            if (includePreferences) {
+                exportData.preferences = await this.dbManager.getPreferences();
+            }
+
+            // Add history if requested
+            if (includeHistory) {
+                const history = await this.dbManager.getSearchHistory();
+                exportData.history = history.map(entry => ({
+                    ...entry,
+                    // Remove sensitive data if needed
+                    userAgent: undefined, // Don't export user agent
+                    ip: undefined // Don't export IP if stored
+                }));
+            }
+
+            // Add export statistics
+            exportData.statistics = {
+                totalEngines: exportData.engines?.length || 0,
+                enabledEngines: exportData.engines?.filter(e => e.enabled).length || 0,
+                defaultEngine: exportData.engines?.find(e => e.isDefault)?.name || null,
+                historyEntries: exportData.history?.length || 0,
+                exportSize: JSON.stringify(exportData).length
+            };
+
+            // Validate export data before returning
+            const validation = this.validateExportData(exportData);
+            if (!validation.isValid) {
+                throw new Error(`Export validation failed: ${validation.errors.join(', ')}`);
+            }
+
+            // Add validation results to export
+            exportData.validation = {
+                isValid: validation.isValid,
+                validatedAt: new Date().toISOString(),
+                checksum: this.generateExportChecksum(exportData),
+                warnings: validation.warnings
+            };
+
+            return exportData;
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to generate export data');
+            throw new Error('Failed to generate export data: ' + error.message);
+        }
+    }
+
+    /**
+     * Generate comprehensive export metadata
+     * @returns {Promise<Object>} Metadata object
+     */
+    async generateExportMetadata() {
+        try {
+            const engines = await this.dbManager.getAllEngines();
+            const preferences = await this.dbManager.getPreferences();
+            const history = await this.dbManager.getSearchHistory();
+
+            return {
+                application: {
+                    name: 'SuperSearch',
+                    version: '1.0',
+                    url: 'https://github.com/Centralize/SuperSearch'
+                },
+                export: {
+                    timestamp: new Date().toISOString(),
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    userAgent: navigator.userAgent,
+                    language: navigator.language
+                },
+                content: {
+                    engines: {
+                        total: engines.length,
+                        enabled: engines.filter(e => e.enabled).length,
+                        disabled: engines.filter(e => !e.enabled).length,
+                        default: engines.find(e => e.isDefault)?.name || null,
+                        custom: engines.filter(e => !e.isBuiltIn).length,
+                        builtin: engines.filter(e => e.isBuiltIn).length
+                    },
+                    preferences: {
+                        theme: preferences.theme || 'light',
+                        activeEngines: preferences.activeEngines?.length || 0,
+                        customSettings: Object.keys(preferences).length
+                    },
+                    history: {
+                        entries: history.length,
+                        dateRange: history.length > 0 ? {
+                            oldest: new Date(Math.min(...history.map(h => h.timestamp))).toISOString(),
+                            newest: new Date(Math.max(...history.map(h => h.timestamp))).toISOString()
+                        } : null
+                    }
+                },
+                compatibility: {
+                    minVersion: '1.0',
+                    maxVersion: '2.0',
+                    features: ['engines', 'preferences', 'history', 'themes']
+                }
+            };
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to generate export metadata');
+            return {
+                error: 'Failed to generate metadata',
+                timestamp: new Date().toISOString()
+            };
+        }
+    }
+
+    /**
+     * Validate export data for integrity and completeness
+     * @param {Object} exportData - Export data to validate
+     * @returns {Object} Validation result
+     */
+    validateExportData(exportData) {
+        const result = {
+            isValid: true,
+            errors: [],
+            warnings: []
+        };
+
+        // Check required fields
+        if (!exportData.version) {
+            result.errors.push('Missing version information');
+            result.isValid = false;
+        }
+
+        if (!exportData.exportedAt) {
+            result.errors.push('Missing export timestamp');
+            result.isValid = false;
+        }
+
+        // Validate engines if included
+        if (exportData.engines) {
+            if (!Array.isArray(exportData.engines)) {
+                result.errors.push('Engines data is not an array');
+                result.isValid = false;
+            } else {
+                exportData.engines.forEach((engine, index) => {
+                    if (!engine.name || !engine.url) {
+                        result.errors.push(`Engine ${index + 1} missing required fields (name, url)`);
+                        result.isValid = false;
+                    }
+
+                    if (engine.url && !engine.url.includes('{query}')) {
+                        result.warnings.push(`Engine "${engine.name}" URL may not contain {query} placeholder`);
+                    }
+                });
+
+                // Check for duplicate names
+                const names = exportData.engines.map(e => e.name.toLowerCase());
+                const duplicates = names.filter((name, index) => names.indexOf(name) !== index);
+                if (duplicates.length > 0) {
+                    result.warnings.push(`Duplicate engine names found: ${[...new Set(duplicates)].join(', ')}`);
+                }
+
+                // Check for default engine
+                const defaultEngines = exportData.engines.filter(e => e.isDefault);
+                if (defaultEngines.length === 0) {
+                    result.warnings.push('No default engine specified');
+                } else if (defaultEngines.length > 1) {
+                    result.warnings.push('Multiple default engines found');
+                }
+            }
+        }
+
+        // Validate preferences if included
+        if (exportData.preferences) {
+            if (typeof exportData.preferences !== 'object') {
+                result.errors.push('Preferences data is not an object');
+                result.isValid = false;
+            }
+        }
+
+        // Validate history if included
+        if (exportData.history) {
+            if (!Array.isArray(exportData.history)) {
+                result.errors.push('History data is not an array');
+                result.isValid = false;
+            } else {
+                exportData.history.forEach((entry, index) => {
+                    if (!entry.query || !entry.timestamp) {
+                        result.warnings.push(`History entry ${index + 1} missing required fields`);
+                    }
+                });
+            }
+        }
+
+        // Check export size
+        const exportSize = JSON.stringify(exportData).length;
+        if (exportSize > 10 * 1024 * 1024) { // 10MB
+            result.warnings.push('Export file is very large (>10MB)');
+        }
+
+        return result;
+    }
+
+    /**
+     * Generate checksum for export data integrity
+     * @param {Object} exportData - Export data
+     * @returns {string} Checksum
+     */
+    generateExportChecksum(exportData) {
+        try {
+            // Create a simplified version for checksum (exclude validation and metadata)
+            const checksumData = {
+                version: exportData.version,
+                engines: exportData.engines,
+                preferences: exportData.preferences,
+                history: exportData.history
+            };
+
+            // Simple hash function (for basic integrity checking)
+            const dataString = JSON.stringify(checksumData);
+            let hash = 0;
+
+            for (let i = 0; i < dataString.length; i++) {
+                const char = dataString.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+
+            return Math.abs(hash).toString(16);
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to generate export checksum');
+            return 'error-' + Date.now().toString(16);
+        }
+    }
+
+    /**
+     * Verify export data integrity using checksum
+     * @param {Object} exportData - Export data with checksum
+     * @returns {boolean} Whether checksum is valid
+     */
+    verifyExportChecksum(exportData) {
+        try {
+            if (!exportData.validation || !exportData.validation.checksum) {
+                return false; // No checksum to verify
+            }
+
+            const originalChecksum = exportData.validation.checksum;
+
+            // Remove validation data and regenerate checksum
+            const dataForVerification = { ...exportData };
+            delete dataForVerification.validation;
+
+            const newChecksum = this.generateExportChecksum(dataForVerification);
+
+            return originalChecksum === newChecksum;
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to verify export checksum');
+            return false;
+        }
+    }
+
+    /**
      * Import application configuration
      * @param {Object} config - Configuration data to import
      * @param {Object} options - Import options

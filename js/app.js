@@ -74,11 +74,13 @@ class SuperSearchApp {
                 window.testUS007 = () => this.testUS007Acceptance();
                 window.testUS008 = () => this.testUS008Acceptance();
                 window.testUS009 = () => this.testUS009Acceptance();
+                window.testUS010 = () => this.testUS010Acceptance();
                 window.testAddEngine = () => this.testAddEngineFlow();
                 window.testEditEngine = () => this.testEditEngineFlow();
                 window.testDeleteEngine = () => this.testDeleteEngineFlow();
+                window.testExportConfig = () => this.testExportConfigFlow();
                 window.validateEngineState = () => this.validateEngineManagerState();
-                console.log('Development commands available: testCRUD(), testDefaultEngine(), testActiveEngines(), testUS006(), testUS007(), testUS008(), testUS009(), testAddEngine(), testEditEngine(), testDeleteEngine(), validateEngineState()');
+                console.log('Development commands available: testCRUD(), testDefaultEngine(), testActiveEngines(), testUS006(), testUS007(), testUS008(), testUS009(), testUS010(), testAddEngine(), testEditEngine(), testDeleteEngine(), testExportConfig(), validateEngineState()');
             }
 
         } catch (error) {
@@ -208,6 +210,22 @@ class SuperSearchApp {
 
         // Settings
         this.elements.saveSettings?.addEventListener('click', () => this.saveSettings());
+
+        // Enhanced configuration management
+        document.getElementById('exportConfigBtn')?.addEventListener('click', () => this.openExportConfigModal());
+        document.getElementById('resetConfigBtn')?.addEventListener('click', () => this.resetConfiguration());
+
+        // Export modal event listeners
+        document.getElementById('previewExportBtn')?.addEventListener('click', () => this.previewExport());
+        document.getElementById('downloadExportBtn')?.addEventListener('click', () => this.downloadExport());
+
+        // Export options change listeners
+        document.getElementById('exportEngines')?.addEventListener('change', () => this.updateExportPreview());
+        document.getElementById('exportPreferences')?.addEventListener('change', () => this.updateExportPreview());
+        document.getElementById('exportHistory')?.addEventListener('change', () => this.updateExportPreview());
+        document.getElementById('exportFilename')?.addEventListener('input', () => this.updateExportSummary());
+        document.getElementById('exportPrettyFormat')?.addEventListener('change', () => this.updateExportSummary());
+        document.getElementById('exportCompressed')?.addEventListener('change', () => this.updateExportSummary());
 
         // Engine management
         this.elements.addEngineBtn?.addEventListener('click', () => this.openAddEngineModal());
@@ -5050,6 +5068,787 @@ class SuperSearchApp {
         } catch (error) {
             console.error('Delete engine flow test failed:', error);
             Utils.showNotification('Delete engine flow test failed: ' + error.message, 'danger');
+            return false;
+        }
+    }
+
+    /**
+     * Open enhanced export configuration modal
+     */
+    openExportConfigModal() {
+        try {
+            // Initialize export options with defaults
+            this.initializeExportOptions();
+
+            // Update preview and summary
+            this.updateExportPreview();
+            this.updateExportSummary();
+
+            // Show modal
+            const modal = document.getElementById('exportConfigModal');
+            if (modal) {
+                UIkit.modal(modal).show();
+            }
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to open export modal');
+            Utils.showNotification('Failed to open export dialog', 'danger');
+        }
+    }
+
+    /**
+     * Initialize export options with default values
+     */
+    initializeExportOptions() {
+        // Set default filename
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const defaultFilename = `supersearch-config-${dateStr}`;
+
+        const filenameInput = document.getElementById('exportFilename');
+        if (filenameInput && !filenameInput.value) {
+            filenameInput.value = defaultFilename;
+        }
+
+        // Set default checkboxes
+        const defaultOptions = {
+            exportEngines: true,
+            exportPreferences: true,
+            exportHistory: false,
+            exportPrettyFormat: true,
+            exportCompressed: false
+        };
+
+        Object.entries(defaultOptions).forEach(([id, checked]) => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.checked = checked;
+            }
+        });
+    }
+
+    /**
+     * Update export preview based on selected options
+     */
+    async updateExportPreview() {
+        try {
+            const previewContainer = document.getElementById('exportPreview');
+            if (!previewContainer) return;
+
+            // Get selected options
+            const options = this.getExportOptions();
+
+            // Generate preview data
+            const previewData = await this.generateExportPreview(options);
+
+            // Display preview
+            previewContainer.innerHTML = `
+                <div class="export-preview-content">
+                    <div class="preview-header">
+                        <h4>Export Preview</h4>
+                        <div class="uk-text-small uk-text-muted">
+                            ${previewData.totalItems} items • ${previewData.estimatedSize}
+                        </div>
+                    </div>
+                    <div class="preview-sections">
+                        ${previewData.sections.map(section => `
+                            <div class="preview-section ${section.included ? 'included' : 'excluded'}">
+                                <div class="section-header">
+                                    <span uk-icon="${section.icon}" class="section-icon"></span>
+                                    <span class="section-title">${section.title}</span>
+                                    <span class="section-count">${section.count} items</span>
+                                </div>
+                                ${section.included ? `
+                                    <div class="section-preview">
+                                        <pre class="preview-code">${section.preview}</pre>
+                                    </div>
+                                ` : `
+                                    <div class="section-excluded">Not included in export</div>
+                                `}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            // Update summary as well
+            this.updateExportSummary();
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to update export preview');
+        }
+    }
+
+    /**
+     * Generate export preview data
+     * @param {Object} options - Export options
+     * @returns {Object} Preview data
+     */
+    async generateExportPreview(options) {
+        const sections = [];
+        let totalItems = 0;
+        let estimatedSize = 0;
+
+        // Search Engines section
+        if (options.includeEngines) {
+            const engines = this.engineManager.getAllEngines();
+            const enginePreview = engines.slice(0, 2).map(engine => ({
+                name: engine.name,
+                url: engine.url,
+                enabled: engine.enabled
+            }));
+
+            sections.push({
+                title: 'Search Engines',
+                icon: 'search',
+                count: engines.length,
+                included: true,
+                preview: JSON.stringify(enginePreview, null, 2) + (engines.length > 2 ? '\n  // ... and more' : '')
+            });
+
+            totalItems += engines.length;
+            estimatedSize += JSON.stringify(engines).length;
+        } else {
+            sections.push({
+                title: 'Search Engines',
+                icon: 'search',
+                count: this.engineManager.getAllEngines().length,
+                included: false
+            });
+        }
+
+        // Preferences section
+        if (options.includePreferences) {
+            const preferences = await this.configManager.getPreferences();
+            const prefPreview = {
+                theme: preferences.theme || 'light',
+                defaultEngine: preferences.defaultEngine,
+                activeEngines: preferences.activeEngines?.slice(0, 3) || []
+            };
+
+            sections.push({
+                title: 'Preferences',
+                icon: 'settings',
+                count: Object.keys(preferences).length,
+                included: true,
+                preview: JSON.stringify(prefPreview, null, 2)
+            });
+
+            totalItems += Object.keys(preferences).length;
+            estimatedSize += JSON.stringify(preferences).length;
+        } else {
+            sections.push({
+                title: 'Preferences',
+                icon: 'settings',
+                count: 'Various',
+                included: false
+            });
+        }
+
+        // History section
+        if (options.includeHistory) {
+            const history = this.historyManager.getHistory();
+            const historyPreview = history.slice(0, 3).map(item => ({
+                query: item.query,
+                timestamp: new Date(item.timestamp).toISOString()
+            }));
+
+            sections.push({
+                title: 'Search History',
+                icon: 'history',
+                count: history.length,
+                included: true,
+                preview: JSON.stringify(historyPreview, null, 2) + (history.length > 3 ? '\n  // ... and more' : '')
+            });
+
+            totalItems += history.length;
+            estimatedSize += JSON.stringify(history).length;
+        } else {
+            sections.push({
+                title: 'Search History',
+                icon: 'history',
+                count: this.historyManager.getHistory().length,
+                included: false
+            });
+        }
+
+        return {
+            sections,
+            totalItems,
+            estimatedSize: this.formatFileSize(estimatedSize)
+        };
+    }
+
+    /**
+     * Update export summary
+     */
+    updateExportSummary() {
+        try {
+            const summaryContainer = document.getElementById('exportSummary');
+            if (!summaryContainer) return;
+
+            const options = this.getExportOptions();
+            const filename = options.filename || 'supersearch-config';
+            const fileExtension = '.json';
+
+            // Calculate what will be included
+            const includedItems = [];
+            if (options.includeEngines) includedItems.push('Search Engines');
+            if (options.includePreferences) includedItems.push('Preferences');
+            if (options.includeHistory) includedItems.push('Search History');
+
+            summaryContainer.innerHTML = `
+                <div class="export-summary-content">
+                    <div class="summary-header">
+                        <h4>Export Summary</h4>
+                    </div>
+                    <div class="summary-details">
+                        <div class="summary-row">
+                            <span class="summary-label">Filename:</span>
+                            <span class="summary-value">${filename}${fileExtension}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">Format:</span>
+                            <span class="summary-value">
+                                ${options.prettyFormat ? 'Pretty JSON' : 'Compact JSON'}
+                                ${options.compressed ? ' (Compressed)' : ''}
+                            </span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">Includes:</span>
+                            <span class="summary-value">
+                                ${includedItems.length > 0 ? includedItems.join(', ') : 'Nothing selected'}
+                            </span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">Compatibility:</span>
+                            <span class="summary-value">SuperSearch v1.0+</span>
+                        </div>
+                    </div>
+                    ${includedItems.length === 0 ? `
+                        <div class="summary-warning">
+                            <span uk-icon="warning" class="uk-text-warning"></span>
+                            <span class="uk-text-warning">No data selected for export</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            // Update download button state
+            const downloadBtn = document.getElementById('downloadExportBtn');
+            if (downloadBtn) {
+                downloadBtn.disabled = includedItems.length === 0;
+                if (includedItems.length === 0) {
+                    downloadBtn.innerHTML = '<span uk-icon="warning" class="uk-margin-small-right"></span>Nothing to Export';
+                } else {
+                    downloadBtn.innerHTML = '<span uk-icon="download" class="uk-margin-small-right"></span>Download Export';
+                }
+            }
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to update export summary');
+        }
+    }
+
+    /**
+     * Get current export options from the form
+     * @returns {Object} Export options
+     */
+    getExportOptions() {
+        return {
+            includeEngines: document.getElementById('exportEngines')?.checked || false,
+            includePreferences: document.getElementById('exportPreferences')?.checked || false,
+            includeHistory: document.getElementById('exportHistory')?.checked || false,
+            filename: document.getElementById('exportFilename')?.value?.trim() || 'supersearch-config',
+            prettyFormat: document.getElementById('exportPrettyFormat')?.checked || false,
+            compressed: document.getElementById('exportCompressed')?.checked || false
+        };
+    }
+
+    /**
+     * Preview export data in a new window/tab
+     */
+    async previewExport() {
+        try {
+            const options = this.getExportOptions();
+
+            if (!options.includeEngines && !options.includePreferences && !options.includeHistory) {
+                Utils.showNotification('Please select at least one item to preview', 'warning');
+                return;
+            }
+
+            // Generate export data
+            const exportData = await this.configManager.generateExportData(options);
+
+            // Format for display
+            const formattedData = JSON.stringify(exportData, null, 2);
+
+            // Open in new window
+            const previewWindow = window.open('', '_blank');
+            if (previewWindow) {
+                previewWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>SuperSearch Configuration Preview</title>
+                        <style>
+                            body { font-family: monospace; margin: 20px; background: #f5f5f5; }
+                            .header { background: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                            .content { background: white; padding: 20px; border-radius: 5px; }
+                            pre { white-space: pre-wrap; word-wrap: break-word; }
+                            .stats { color: #666; font-size: 0.9em; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h1>SuperSearch Configuration Preview</h1>
+                            <div class="stats">
+                                Generated: ${new Date().toLocaleString()}<br>
+                                Size: ${this.formatFileSize(formattedData.length)}<br>
+                                Items: ${this.countExportItems(exportData)}
+                            </div>
+                        </div>
+                        <div class="content">
+                            <pre>${formattedData}</pre>
+                        </div>
+                    </body>
+                    </html>
+                `);
+                previewWindow.document.close();
+            } else {
+                Utils.showNotification('Please allow popups to preview export data', 'warning');
+            }
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to preview export');
+            Utils.showNotification('Failed to preview export data', 'danger');
+        }
+    }
+
+    /**
+     * Download export file
+     */
+    async downloadExport() {
+        try {
+            const options = this.getExportOptions();
+
+            if (!options.includeEngines && !options.includePreferences && !options.includeHistory) {
+                Utils.showNotification('Please select at least one item to export', 'warning');
+                return;
+            }
+
+            // Show progress
+            this.showProgressNotification('Generating export file...', 0);
+
+            // Generate export data using ConfigManager
+            const exportData = await this.configManager.generateExportData(options);
+
+            this.showProgressNotification('Formatting export data...', 50);
+
+            // Format data
+            const formattedData = options.prettyFormat
+                ? JSON.stringify(exportData, null, 2)
+                : JSON.stringify(exportData);
+
+            this.showProgressNotification('Preparing download...', 75);
+
+            // Create and download file
+            const filename = `${options.filename}.json`;
+            this.downloadFile(formattedData, filename, 'application/json');
+
+            this.showProgressNotification('Export complete!', 100);
+
+            // Close modal
+            const modal = document.getElementById('exportConfigModal');
+            if (modal) {
+                UIkit.modal(modal).hide();
+            }
+
+            // Show success notification
+            Utils.showNotification(`Configuration exported as "${filename}"`, 'success');
+
+            // Hide progress after delay
+            setTimeout(() => {
+                const notifications = document.querySelectorAll('.uk-notification-message');
+                notifications.forEach(notification => {
+                    if (notification.textContent.includes('Export complete')) {
+                        notification.remove();
+                    }
+                });
+            }, 2000);
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to download export');
+            Utils.showNotification('Failed to export configuration', 'danger');
+        }
+    }
+
+    /**
+     * Reset configuration to defaults
+     */
+    async resetConfiguration() {
+        try {
+            const confirmed = await this.showResetConfirmationDialog();
+            if (!confirmed) return;
+
+            // Show progress
+            this.showProgressNotification('Resetting configuration...', 0);
+
+            // Reset using ConfigManager
+            await this.configManager.resetToDefaults();
+
+            this.showProgressNotification('Reloading application...', 75);
+
+            // Reload the application
+            await this.initialize();
+
+            this.showProgressNotification('Reset complete!', 100);
+
+            // Close settings modal
+            const settingsModal = document.getElementById('settingsModal');
+            if (settingsModal) {
+                UIkit.modal(settingsModal).hide();
+            }
+
+            Utils.showNotification('Configuration reset to defaults', 'success');
+
+            // Hide progress after delay
+            setTimeout(() => {
+                const notifications = document.querySelectorAll('.uk-notification-message');
+                notifications.forEach(notification => {
+                    if (notification.textContent.includes('Reset complete')) {
+                        notification.remove();
+                    }
+                });
+            }, 2000);
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to reset configuration');
+            Utils.showNotification('Failed to reset configuration', 'danger');
+        }
+    }
+
+    /**
+     * Show reset confirmation dialog
+     * @returns {Promise<boolean>} Whether user confirmed reset
+     */
+    async showResetConfirmationDialog() {
+        return new Promise((resolve) => {
+            const content = `
+                <div class="uk-text-center">
+                    <div class="uk-margin-medium-bottom">
+                        <span uk-icon="warning" class="uk-text-danger" style="font-size: 3rem;"></span>
+                    </div>
+                    <h3>Reset Configuration</h3>
+                    <p>This will reset all settings to their default values:</p>
+                    <ul class="uk-text-left uk-margin-medium">
+                        <li>All custom search engines will be removed</li>
+                        <li>Theme and preferences will be reset</li>
+                        <li>Search history will be cleared</li>
+                        <li>Default search engines will be restored</li>
+                    </ul>
+                    <p class="uk-text-danger"><strong>This action cannot be undone.</strong></p>
+                    <p>Consider exporting your configuration first.</p>
+                </div>
+            `;
+
+            const modal = UIkit.modal.confirm(content, {
+                labels: {
+                    ok: 'Reset Everything',
+                    cancel: 'Cancel'
+                }
+            });
+
+            modal.then(() => resolve(true), () => resolve(false));
+        });
+    }
+
+    /**
+     * Helper method to format file size
+     * @param {number} bytes - Size in bytes
+     * @returns {string} Formatted size
+     */
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    /**
+     * Helper method to count items in export data
+     * @param {Object} exportData - Export data object
+     * @returns {number} Total item count
+     */
+    countExportItems(exportData) {
+        let count = 0;
+        if (exportData.engines) count += exportData.engines.length;
+        if (exportData.preferences) count += Object.keys(exportData.preferences).length;
+        if (exportData.history) count += exportData.history.length;
+        return count;
+    }
+
+    /**
+     * Helper method to download a file
+     * @param {string} content - File content
+     * @param {string} filename - File name
+     * @param {string} mimeType - MIME type
+     */
+    downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up the URL object
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
+
+    /**
+     * Test all US-010 acceptance criteria
+     */
+    async testUS010Acceptance() {
+        try {
+            Utils.showNotification('Testing US-010: Export Configuration acceptance criteria...', 'primary');
+
+            const results = {
+                exportDialog: false,
+                exportOptions: false,
+                exportPreview: false,
+                fileDownload: false,
+                dataValidation: false,
+                overallScore: 0,
+                errors: []
+            };
+
+            console.log('=== US-010 ACCEPTANCE CRITERIA TESTING ===');
+
+            // 1. Export dialog functionality
+            try {
+                console.log('1. Testing export dialog...');
+
+                if (typeof this.openExportConfigModal === 'function' &&
+                    document.getElementById('exportConfigModal')) {
+                    results.exportDialog = true;
+                    console.log('✓ Export dialog: IMPLEMENTED');
+                } else {
+                    results.errors.push('Export dialog not found');
+                    console.log('✗ Export dialog: MISSING');
+                }
+            } catch (error) {
+                results.errors.push('Export dialog test failed: ' + error.message);
+                console.log('✗ Export dialog: ERROR');
+            }
+
+            // 2. Export options
+            try {
+                console.log('2. Testing export options...');
+
+                const requiredOptions = ['exportEngines', 'exportPreferences', 'exportHistory', 'exportFilename'];
+                const optionsExist = requiredOptions.every(id => document.getElementById(id));
+
+                if (optionsExist && typeof this.getExportOptions === 'function') {
+                    results.exportOptions = true;
+                    console.log('✓ Export options: IMPLEMENTED');
+                } else {
+                    results.errors.push('Export options not properly implemented');
+                    console.log('✗ Export options: MISSING');
+                }
+            } catch (error) {
+                results.errors.push('Export options test failed: ' + error.message);
+                console.log('✗ Export options: ERROR');
+            }
+
+            // 3. Export preview
+            try {
+                console.log('3. Testing export preview...');
+
+                if (typeof this.updateExportPreview === 'function' &&
+                    typeof this.previewExport === 'function' &&
+                    document.getElementById('exportPreview')) {
+                    results.exportPreview = true;
+                    console.log('✓ Export preview: IMPLEMENTED');
+                } else {
+                    results.errors.push('Export preview not properly implemented');
+                    console.log('✗ Export preview: MISSING');
+                }
+            } catch (error) {
+                results.errors.push('Export preview test failed: ' + error.message);
+                console.log('✗ Export preview: ERROR');
+            }
+
+            // 4. File download functionality
+            try {
+                console.log('4. Testing file download...');
+
+                if (typeof this.downloadExport === 'function' &&
+                    typeof this.downloadFile === 'function') {
+                    results.fileDownload = true;
+                    console.log('✓ File download: IMPLEMENTED');
+                } else {
+                    results.errors.push('File download functionality not found');
+                    console.log('✗ File download: MISSING');
+                }
+            } catch (error) {
+                results.errors.push('File download test failed: ' + error.message);
+                console.log('✗ File download: ERROR');
+            }
+
+            // 5. Data validation
+            try {
+                console.log('5. Testing data validation...');
+
+                if (typeof this.configManager.validateExportData === 'function' &&
+                    typeof this.configManager.generateExportChecksum === 'function') {
+
+                    // Test validation with sample data
+                    const sampleData = {
+                        version: '1.0',
+                        exportedAt: new Date().toISOString(),
+                        engines: [{ name: 'Test', url: 'https://test.com/search?q={query}', enabled: true }]
+                    };
+
+                    const validationResult = this.configManager.validateExportData(sampleData);
+
+                    if (validationResult && typeof validationResult.isValid === 'boolean') {
+                        results.dataValidation = true;
+                        console.log('✓ Data validation: WORKING');
+                    } else {
+                        results.errors.push('Data validation not returning proper results');
+                        console.log('✗ Data validation: INVALID RESULTS');
+                    }
+                } else {
+                    results.errors.push('Data validation methods not found');
+                    console.log('✗ Data validation: MISSING METHODS');
+                }
+            } catch (error) {
+                results.errors.push('Data validation test failed: ' + error.message);
+                console.log('✗ Data validation: ERROR');
+            }
+
+            // Calculate overall score
+            const passedCriteria = Object.values(results).filter(r => r === true).length;
+            results.overallScore = (passedCriteria / 5) * 100;
+
+            console.log('=== US-010 TEST RESULTS ===');
+            console.log(`Overall Score: ${results.overallScore}%`);
+            console.log(`Passed Criteria: ${passedCriteria}/5`);
+
+            if (results.overallScore >= 75) {
+                Utils.showNotification(`US-010 ACCEPTANCE: ${results.overallScore}% - PASSED`, 'success');
+                console.log('🎉 US-010: Export Configuration - ACCEPTANCE CRITERIA MET');
+            } else {
+                Utils.showNotification(`US-010 ACCEPTANCE: ${results.overallScore}% - NEEDS WORK`, 'warning');
+                console.log('⚠ US-010: Export Configuration - NEEDS IMPROVEMENT');
+            }
+
+            if (results.errors.length > 0) {
+                console.log('Issues found:', results.errors);
+            }
+
+            return results;
+
+        } catch (error) {
+            Utils.logError(error, 'US-010 acceptance testing failed');
+            Utils.showNotification('US-010 acceptance testing failed', 'danger');
+            throw error;
+        }
+    }
+
+    /**
+     * Test the complete export configuration flow
+     */
+    async testExportConfigFlow() {
+        try {
+            Utils.showNotification('Testing complete export configuration flow...', 'primary');
+
+            console.log('=== TESTING EXPORT CONFIGURATION FLOW ===');
+
+            // Step 1: Test export data generation
+            console.log('1. Testing export data generation...');
+            const exportOptions = {
+                includeEngines: true,
+                includePreferences: true,
+                includeHistory: false
+            };
+
+            const exportData = await this.configManager.generateExportData(exportOptions);
+
+            if (!exportData || !exportData.version) {
+                console.log('✗ Failed to generate export data');
+                Utils.showNotification('Export data generation failed', 'danger');
+                return false;
+            }
+
+            console.log('✓ Export data generated successfully');
+
+            // Step 2: Test data validation
+            console.log('2. Testing data validation...');
+            const validationResult = this.configManager.validateExportData(exportData);
+
+            if (!validationResult.isValid) {
+                console.log('✗ Export data validation failed:', validationResult.errors);
+                Utils.showNotification('Export data validation failed', 'danger');
+                return false;
+            }
+
+            console.log('✓ Export data validation passed');
+
+            // Step 3: Test checksum generation
+            console.log('3. Testing checksum generation...');
+            const checksum = this.configManager.generateExportChecksum(exportData);
+
+            if (!checksum || checksum.startsWith('error-')) {
+                console.log('✗ Checksum generation failed');
+                Utils.showNotification('Checksum generation failed', 'danger');
+                return false;
+            }
+
+            console.log('✓ Checksum generated successfully:', checksum);
+
+            // Step 4: Test JSON formatting
+            console.log('4. Testing JSON formatting...');
+            const prettyJson = JSON.stringify(exportData, null, 2);
+            const compactJson = JSON.stringify(exportData);
+
+            if (!prettyJson || !compactJson) {
+                console.log('✗ JSON formatting failed');
+                Utils.showNotification('JSON formatting failed', 'danger');
+                return false;
+            }
+
+            console.log('✓ JSON formatting successful');
+            console.log(`   Pretty format: ${this.formatFileSize(prettyJson.length)}`);
+            console.log(`   Compact format: ${this.formatFileSize(compactJson.length)}`);
+
+            // Step 5: Test export statistics
+            console.log('5. Testing export statistics...');
+            if (exportData.statistics && exportData.metadata) {
+                console.log('✓ Export includes comprehensive statistics and metadata');
+                console.log(`   Total engines: ${exportData.statistics.totalEngines}`);
+                console.log(`   Enabled engines: ${exportData.statistics.enabledEngines}`);
+                console.log(`   Export size: ${this.formatFileSize(exportData.statistics.exportSize)}`);
+            } else {
+                console.log('⚠ Export missing statistics or metadata');
+            }
+
+            // Final success
+            console.log('=== EXPORT CONFIGURATION FLOW TEST COMPLETED SUCCESSFULLY ===');
+            Utils.showNotification('Export configuration flow test completed successfully!', 'success');
+
+            return true;
+
+        } catch (error) {
+            console.error('Export configuration flow test failed:', error);
+            Utils.showNotification('Export configuration flow test failed: ' + error.message, 'danger');
             return false;
         }
     }

@@ -252,7 +252,32 @@
                 </fieldset>
             </form>
             
-            <p class="uk-text-right">
+            <!-- Configuration Management -->
+            <div class="uk-margin-medium-top">
+                <h3 class="uk-h4">Configuration Management</h3>
+                <div class="uk-grid-small uk-child-width-auto" uk-grid>
+                    <div>
+                        <button class="uk-button uk-button-secondary uk-button-small" id="exportConfigBtn">
+                            <span uk-icon="download" class="uk-margin-small-right"></span>Export
+                        </button>
+                    </div>
+                    <div>
+                        <button class="uk-button uk-button-secondary uk-button-small" id="importConfigBtn">
+                            <span uk-icon="upload" class="uk-margin-small-right"></span>Import
+                        </button>
+                    </div>
+                    <div>
+                        <button class="uk-button uk-button-default uk-button-small" id="resetConfigBtn">
+                            <span uk-icon="refresh" class="uk-margin-small-right"></span>Reset to Defaults
+                        </button>
+                    </div>
+                </div>
+                <div class="uk-text-small uk-text-muted uk-margin-small-top">
+                    Export your configuration for backup or sharing, import from a file, or reset to default settings.
+                </div>
+            </div>
+
+            <p class="uk-text-right uk-margin-medium-top">
                 <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
                 <button class="uk-button uk-button-primary" type="button" id="saveSettings">Save Settings</button>
             </p>
@@ -498,6 +523,108 @@
                 </button>
                 <button id="confirmDeleteBtn" class="uk-button uk-button-danger" type="button">
                     <span uk-icon="trash" class="uk-margin-small-right"></span>Delete Engine
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Configuration Modal -->
+    <div id="exportConfigModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body uk-width-large">
+            <div class="modal-header">
+                <h2 class="uk-modal-title">
+                    <span uk-icon="download" class="uk-text-primary uk-margin-small-right"></span>
+                    Export Configuration
+                </h2>
+                <p class="uk-text-muted">Export your search engines and settings for backup or sharing</p>
+            </div>
+
+            <div class="export-configuration-content">
+                <!-- Export Options -->
+                <div class="export-options-section">
+                    <h3 class="uk-h4">Export Options</h3>
+
+                    <div class="uk-grid-small uk-child-width-1-2@m" uk-grid>
+                        <div>
+                            <div class="export-option-card">
+                                <h4>What to Export</h4>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="exportEngines" checked>
+                                        <span class="uk-margin-small-left">Search Engines</span>
+                                        <div class="uk-text-small uk-text-muted">All your custom and default search engines</div>
+                                    </label>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="exportPreferences" checked>
+                                        <span class="uk-margin-small-left">Preferences</span>
+                                        <div class="uk-text-small uk-text-muted">Theme, settings, and user preferences</div>
+                                    </label>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="exportHistory">
+                                        <span class="uk-margin-small-left">Search History</span>
+                                        <div class="uk-text-small uk-text-muted">Your recent searches (privacy sensitive)</div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="export-option-card">
+                                <h4>File Options</h4>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label" for="exportFilename">Custom Filename</label>
+                                    <input class="uk-input uk-form-small" type="text" id="exportFilename"
+                                           placeholder="supersearch-config-2025-01-13">
+                                    <div class="uk-text-small uk-text-muted">.json extension will be added automatically</div>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="exportPrettyFormat" checked>
+                                        <span class="uk-margin-small-left">Pretty Format</span>
+                                        <div class="uk-text-small uk-text-muted">Human-readable JSON formatting</div>
+                                    </label>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">
+                                        <input class="uk-checkbox" type="checkbox" id="exportCompressed">
+                                        <span class="uk-margin-small-left">Compressed</span>
+                                        <div class="uk-text-small uk-text-muted">Smaller file size, less readable</div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Preview -->
+                <div class="export-preview-section">
+                    <h3 class="uk-h4">Export Preview</h3>
+                    <div id="exportPreview" class="export-preview-container">
+                        <!-- Preview content will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Export Summary -->
+                <div class="export-summary-section">
+                    <div id="exportSummary" class="export-summary-card">
+                        <!-- Summary will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="uk-modal-footer uk-text-right">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">
+                    <span uk-icon="close" class="uk-margin-small-right"></span>Cancel
+                </button>
+                <button id="previewExportBtn" class="uk-button uk-button-secondary" type="button">
+                    <span uk-icon="search" class="uk-margin-small-right"></span>Preview
+                </button>
+                <button id="downloadExportBtn" class="uk-button uk-button-primary" type="button">
+                    <span uk-icon="download" class="uk-margin-small-right"></span>Download Export
                 </button>
             </div>
         </div>
