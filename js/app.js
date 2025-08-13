@@ -515,10 +515,16 @@ class SuperSearchApp {
         const div = document.createElement('div');
         div.setAttribute('data-custom', 'true');
         
+        // Create icon element
+        const iconHtml = engine.icon 
+            ? `<img src="${engine.icon}" alt="${engine.name}" class="engine-icon-img" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;">`
+            : `<span class="engine-icon-fallback" style="background-color: ${engine.color}; width: 16px; height: 16px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: middle;"></span>`;
+        
         div.innerHTML = `
-            <label class="engine-checkbox">
-                <input class="uk-checkbox" type="checkbox" id="${engine.id}Engine" checked>
-                <span class="uk-margin-small-left">${Utils.sanitizeHtml(engine.name)}</span>
+            <label class="engine-checkbox" for="${engine.id}Engine">
+                <input type="checkbox" id="${engine.id}Engine" checked>
+                ${iconHtml}
+                <span>${Utils.sanitizeHtml(engine.name)}</span>
             </label>
         `;
         
@@ -526,7 +532,10 @@ class SuperSearchApp {
         
         // Add event listener
         const checkbox = div.querySelector('input');
-        checkbox.addEventListener('change', () => this.updateActiveEngines());
+        checkbox.addEventListener('change', () => {
+            this.updateActiveEngines();
+            this.updateSelectedCount();
+        });
     }
 
     /**
@@ -587,10 +596,16 @@ class SuperSearchApp {
     addSearchResultTab(result) {
         if (!this.elements.resultsTabs || !this.elements.resultsContent) return;
 
+        // Get engine info for icon
+        const engine = this.engineManager.getEngine(result.engineId);
+        const iconHtml = engine?.icon 
+            ? `<img src="${engine.icon}" alt="${result.engineName}" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;">`
+            : '';
+
         // Create tab
         const tabId = `tab-${result.engineId}`;
         const tab = document.createElement('li');
-        tab.innerHTML = `<a href="#${tabId}">${Utils.sanitizeHtml(result.engineName)}</a>`;
+        tab.innerHTML = `<a href="#${tabId}">${iconHtml}${Utils.sanitizeHtml(result.engineName)}</a>`;
         this.elements.resultsTabs.appendChild(tab);
 
         // Create content
@@ -1014,11 +1029,15 @@ class SuperSearchApp {
     createEngineListItem(engine) {
         const div = document.createElement('div');
         div.className = 'engine-item';
+        
+        // Create icon element
+        const iconElement = engine.icon 
+            ? `<img src="${engine.icon}" alt="${engine.name}" class="engine-icon-img" style="width: 24px; height: 24px; border-radius: 4px;">`
+            : `<div class="engine-icon" style="background-color: ${engine.color}">${engine.name.charAt(0).toUpperCase()}</div>`;
+        
         div.innerHTML = `
             <div class="engine-info">
-                <div class="engine-icon" style="background-color: ${engine.color}">
-                    ${engine.name.charAt(0).toUpperCase()}
-                </div>
+                ${iconElement}
                 <div>
                     <p class="engine-name">${Utils.sanitizeHtml(engine.name)}${engine.isDefault ? ' (Default)' : ''}</p>
                     <p class="engine-url text-truncate">${Utils.sanitizeHtml(engine.url)}</p>

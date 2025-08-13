@@ -281,6 +281,49 @@ body {
     font-weight: 400;
 }
 
+/* Engine Icons */
+.engine-icon-img {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    vertical-align: middle;
+    border-radius: 2px;
+    transition: var(--transition);
+}
+
+.engine-icon-fallback {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+    position: relative;
+}
+
+.engine-icon-fallback::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background-color: white;
+    border-radius: 50%;
+}
+
+.engine-checkbox:hover .engine-icon-img,
+.engine-checkbox:hover .engine-icon-fallback {
+    transform: scale(1.1);
+}
+
+.engine-checkbox input:checked ~ .engine-icon-img,
+.engine-checkbox input:checked ~ .engine-icon-fallback {
+    box-shadow: 0 0 0 2px var(--primary-color);
+    border-radius: 4px;
+}
+
 /* Buttons */
 .uk-button-primary {
     background-color: var(--primary-color);

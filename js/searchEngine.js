@@ -54,28 +54,144 @@ class SearchEngineManager {
      */
     async loadDefaultEngines() {
         try {
+            console.log('Loading default search engines...');
+            
             const response = await fetch('data/default-engines.json');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const config = await response.json();
+            console.log('Default engines config loaded:', config);
             
             if (config.engines && Array.isArray(config.engines)) {
+                let successCount = 0;
+                let errorCount = 0;
+                
                 for (const engineConfig of config.engines) {
-                    await this.addEngine(engineConfig);
+                    try {
+                        // Check if engine already exists
+                        const existing = this.engines.find(e => e.id === engineConfig.id);
+                        if (!existing) {
+                            await this.addEngineDirectly(engineConfig);
+                            successCount++;
+                            console.log(`Added default engine: ${engineConfig.name}`);
+                        } else {
+                            console.log(`Engine already exists: ${engineConfig.name}`);
+                        }
+                    } catch (engineError) {
+                        errorCount++;
+                        Utils.logError(engineError, `Failed to load engine: ${engineConfig.name}`);
+                    }
                 }
                 
                 // Load default preferences if available
                 if (config.preferences) {
-                    await this.dbManager.updatePreferences(config.preferences);
+                    try {
+                        await this.dbManager.updatePreferences(config.preferences);
+                        console.log('Default preferences loaded');
+                    } catch (prefError) {
+                        Utils.logError(prefError, 'Failed to load default preferences');
+                    }
                 }
                 
-                Utils.showNotification('Default search engines loaded successfully', 'success');
+                // Show appropriate notification
+                if (successCount > 0) {
+                    Utils.showNotification(`Loaded ${successCount} default search engines`, 'success');
+                } else if (errorCount > 0) {
+                    Utils.showNotification('Some default engines failed to load', 'warning');
+                }
+                
+                // Reload engines to update cache
+                await this.loadEngines();
+                
+            } else {
+                throw new Error('Invalid default engines configuration format');
             }
         } catch (error) {
             Utils.logError(error, 'Failed to load default engines');
-            Utils.showNotification('Failed to load default engines', 'warning');
+            
+            // Fallback to hardcoded defaults if file loading fails
+            await this.loadHardcodedDefaults();
+        }
+    }
+
+    /**
+     * Add engine directly without duplicate checking (for defaults)
+     * @param {Object} engineConfig - Engine configuration
+     * @returns {Promise<string>} Engine ID
+     * @private
+     */
+    async addEngineDirectly(engineConfig) {
+        // Validate engine configuration
+        if (!this.validateEngineConfig(engineConfig)) {
+            throw new Error('Invalid engine configuration');
+        }
+
+        // Add to database directly
+        const engineId = await this.dbManager.addEngine(engineConfig);
+        return engineId;
+    }
+
+    /**
+     * Load hardcoded default engines as fallback
+     * @returns {Promise<void>}
+     * @private
+     */
+    async loadHardcodedDefaults() {
+        console.log('Loading hardcoded default engines as fallback...');
+        
+        const hardcodedEngines = [
+            {
+                id: 'google',
+                name: 'Google',
+                url: 'https://www.google.com/search?q={query}',
+                icon: 'https://www.google.com/favicon.ico',
+                color: '#4285f4',
+                enabled: true,
+                isDefault: true,
+                sortOrder: 1
+            },
+            {
+                id: 'duckduckgo',
+                name: 'DuckDuckGo',
+                url: 'https://duckduckgo.com/?q={query}',
+                icon: 'https://duckduckgo.com/favicon.ico',
+                color: '#de5833',
+                enabled: true,
+                isDefault: false,
+                sortOrder: 2
+            },
+            {
+                id: 'bing',
+                name: 'Bing',
+                url: 'https://www.bing.com/search?q={query}',
+                icon: 'https://www.bing.com/favicon.ico',
+                color: '#008373',
+                enabled: true,
+                isDefault: false,
+                sortOrder: 3
+            }
+        ];
+
+        let successCount = 0;
+        for (const engine of hardcodedEngines) {
+            try {
+                const existing = this.engines.find(e => e.id === engine.id);
+                if (!existing) {
+                    await this.addEngineDirectly(engine);
+                    successCount++;
+                }
+            } catch (error) {
+                Utils.logError(error, `Failed to add hardcoded engine: ${engine.name}`);
+            }
+        }
+
+        if (successCount > 0) {
+            Utils.showNotification(`Loaded ${successCount} fallback search engines`, 'success');
+            await this.loadEngines();
+        } else {
+            Utils.showNotification('Failed to load any default search engines', 'danger');
         }
     }
 
