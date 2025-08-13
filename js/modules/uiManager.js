@@ -537,10 +537,14 @@ export class UIManager {
         div.className = `engine-item ${engine.isActive ? 'active' : ''} ${engine.isDefault ? 'default' : ''}`;
         div.dataset.engineId = engine.id;
 
+        // Get icon URL with fallback
+        const iconUrl = engine.icon || `assets/icons/engines/${engine.id}.svg`;
+        const fallbackIcon = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Im0xNSAxNS02LTYiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+
         div.innerHTML = `
             <div class="d-flex align-items-center">
-                <img src="${engine.icon}" alt="${engine.name}" class="engine-icon me-2" width="24" height="24"
-                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Im0xNSAxNS02LTYiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                <img src="${iconUrl}" alt="${engine.name}" class="engine-icon me-2" width="24" height="24"
+                     onerror="this.src='${fallbackIcon}'">
                 <div class="flex-grow-1">
                     <span class="engine-name">${engine.name}</span>
                     ${engine.isDefault ? '<span class="badge bg-success ms-1">Default</span>' : ''}

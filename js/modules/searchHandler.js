@@ -138,8 +138,21 @@ export class SearchHandler {
      * @returns {string} Complete search URL
      */
     buildSearchUrl(query, engine) {
+        // Validate engine object
+        if (!engine) {
+            throw new Error('Engine object is null or undefined');
+        }
+
+        if (!engine.name) {
+            throw new Error('Engine missing name property');
+        }
+
         if (!engine.url) {
             throw new Error(`Engine ${engine.name} has no URL template`);
+        }
+
+        if (!engine.url.includes('{query}')) {
+            throw new Error(`Engine ${engine.name} URL template missing {query} placeholder`);
         }
 
         // Encode the query for URL safety
@@ -265,6 +278,12 @@ export class SearchHandler {
      */
     async saveSearchHistory(query, engines) {
         try {
+            // Check if database is available
+            if (!this.database || typeof this.database.create !== 'function') {
+                console.warn('SearchHandler: Database not available for search history');
+                return;
+            }
+
             const historyItem = {
                 query: query,
                 engines: engines.map(engine => engine.name),

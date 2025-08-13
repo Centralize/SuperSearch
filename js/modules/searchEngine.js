@@ -45,9 +45,34 @@ export class SearchEngineManager {
     async loadEngines() {
         try {
             this.engines = await this.database.getAll('engines');
-            console.log(`📊 Loaded ${this.engines.length} search engines`);
+
+            // Validate loaded engines
+            if (!Array.isArray(this.engines)) {
+                console.warn('SearchEngineManager: Invalid engines data from database');
+                this.engines = [];
+                return;
+            }
+
+            // Filter out invalid engines
+            const validEngines = this.engines.filter(engine => {
+                if (!engine || typeof engine !== 'object') {
+                    console.warn('SearchEngineManager: Invalid engine object:', engine);
+                    return false;
+                }
+
+                if (!engine.id || !engine.name || !engine.url) {
+                    console.warn('SearchEngineManager: Engine missing required properties:', engine);
+                    return false;
+                }
+
+                return true;
+            });
+
+            this.engines = validEngines;
+            console.log(`📊 Loaded ${this.engines.length} valid search engines`);
+
         } catch (error) {
-            console.warn('No engines found in database, will load defaults');
+            console.warn('No engines found in database, will load defaults:', error);
             this.engines = [];
         }
     }
@@ -232,7 +257,23 @@ export class SearchEngineManager {
      * @returns {Array} Active engines
      */
     getActiveEngines() {
-        return this.engines.filter(e => e.isActive);
+        if (!this.engines || !Array.isArray(this.engines)) {
+            console.warn('SearchEngineManager: No engines loaded');
+            return [];
+        }
+
+        const activeEngines = this.engines.filter(e => e && e.isActive);
+
+        // Validate each engine has required properties
+        const validEngines = activeEngines.filter(engine => {
+            if (!engine.id || !engine.name || !engine.url) {
+                console.warn(`SearchEngineManager: Invalid engine data:`, engine);
+                return false;
+            }
+            return true;
+        });
+
+        return validEngines;
     }
 
     /**
