@@ -195,27 +195,84 @@
                 // Test search URL building
                 activeEngines.forEach(engine => {
                     try {
-                        const searchUrl = app.modules.searchHandler.buildSearchUrl(testQuery, engine);
+                        // Check if search module exists (SearchHandler is stored as 'search')
+                        if (!app.modules.search) {
+                            addResult(`❌ Search module not available`, 'error');
+                            return;
+                        }
+
+                        const searchUrl = app.modules.search.buildSearchUrl(testQuery, engine);
                         addResult(`✅ Search URL for ${engine.name}: ${searchUrl}`, 'success');
                     } catch (error) {
                         addResult(`❌ Failed to build URL for ${engine.name}: ${error.message}`, 'error');
                     }
                 });
-                
+
                 // Test full search operation
-                const searchResults = await app.modules.searchHandler.search(testQuery, activeEngines.slice(0, 2));
-                addResult(`✅ Search completed: ${searchResults.length} results`, 'success');
-                
-                // Check for errors in results
-                const errors = searchResults.filter(result => result.error);
-                if (errors.length > 0) {
-                    addResult(`⚠️ ${errors.length} search errors occurred`, 'warning');
-                } else {
-                    addResult('✅ All search operations successful', 'success');
+                try {
+                    if (!app.modules.search) {
+                        addResult(`⚠️ Search module not available - skipping search test`, 'warning');
+                        return;
+                    }
+
+                    const searchResults = await app.modules.search.search(testQuery, activeEngines.slice(0, 2));
+                    addResult(`✅ Search completed: ${searchResults.length} results`, 'success');
+
+                    // Check for errors in results
+                    const errors = searchResults.filter(result => result.error);
+                    if (errors.length > 0) {
+                        addResult(`⚠️ ${errors.length} search errors occurred`, 'warning');
+                    } else {
+                        addResult('✅ All search operations successful', 'success');
+                    }
+                } catch (error) {
+                    addResult(`❌ Search operation failed: ${error.message}`, 'error');
                 }
+
                 
             } catch (error) {
                 addResult(`❌ Search test failed: ${error.message}`, 'error');
+            }
+        };
+
+        window.testModules = async function() {
+            addResult('🧩 Testing modules...', 'info');
+
+            try {
+                if (!app) throw new Error('App not initialized');
+
+                const modules = Object.keys(app.modules);
+                addResult(`✅ Loaded modules: [${modules.join(', ')}]`, 'success');
+
+                // Expected modules
+                const expectedModules = ['database', 'notification', 'searchEngine', 'search', 'config', 'ui', 'keyboard'];
+
+                // Test each expected module
+                for (const moduleName of expectedModules) {
+                    const module = app.modules[moduleName];
+                    if (module) {
+                        addResult(`   ✅ ${moduleName}: Available`, 'success');
+
+                        // Test specific module methods
+                        if (moduleName === 'search' && typeof module.buildSearchUrl === 'function') {
+                            addResult(`   ✅ ${moduleName}: buildSearchUrl method available`, 'success');
+                        }
+                        if (moduleName === 'searchEngine' && typeof module.getActiveEngines === 'function') {
+                            addResult(`   ✅ ${moduleName}: getActiveEngines method available`, 'success');
+                        }
+                    } else {
+                        addResult(`   ❌ ${moduleName}: MISSING`, 'error');
+                    }
+                }
+
+                // Check for unexpected modules
+                const unexpectedModules = modules.filter(m => !expectedModules.includes(m));
+                if (unexpectedModules.length > 0) {
+                    addResult(`   ℹ️ Additional modules: [${unexpectedModules.join(', ')}]`, 'info');
+                }
+
+            } catch (error) {
+                addResult(`❌ Module test failed: ${error.message}`, 'error');
             }
         };
     </script>
