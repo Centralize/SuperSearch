@@ -1424,10 +1424,24 @@ export class UIManager {
      * Show a modal by name
      */
     showModal(modalName) {
-        const modalElement = this.elements[`${modalName}Modal`];
+        // Map modal names to actual IDs
+        const modalMap = {
+            'addEngine': 'add-engine-modal',
+            'editEngine': 'edit-engine-modal',
+            'settings': 'settings-modal',
+            'history': 'history-modal',
+            'help': 'help-modal'
+        };
+
+        const modalId = modalMap[modalName] || `${modalName}-modal`;
+        const modalElement = document.getElementById(modalId);
+
         if (modalElement && typeof bootstrap !== 'undefined') {
             const modal = new bootstrap.Modal(modalElement);
             modal.show();
+            console.log(`📱 UIManager: Showing modal: ${modalId}`);
+        } else {
+            console.error(`❌ UIManager: Modal not found: ${modalId}`);
         }
     }
 
@@ -1435,11 +1449,23 @@ export class UIManager {
      * Hide a modal by name
      */
     hideModal(modalName) {
-        const modalElement = this.elements[`${modalName}Modal`];
+        // Map modal names to actual IDs
+        const modalMap = {
+            'addEngine': 'add-engine-modal',
+            'editEngine': 'edit-engine-modal',
+            'settings': 'settings-modal',
+            'history': 'history-modal',
+            'help': 'help-modal'
+        };
+
+        const modalId = modalMap[modalName] || `${modalName}-modal`;
+        const modalElement = document.getElementById(modalId);
+
         if (modalElement && typeof bootstrap !== 'undefined') {
             const modal = bootstrap.Modal.getInstance(modalElement);
             if (modal) {
                 modal.hide();
+                console.log(`📱 UIManager: Hiding modal: ${modalId}`);
             }
         }
     }
@@ -1706,6 +1732,16 @@ export class UIManager {
                 errorDiv.remove();
             }
         }
+    }
+
+    /**
+     * Close all open modals
+     */
+    closeAllModals() {
+        const modals = ['addEngine', 'editEngine', 'settings', 'history', 'help'];
+        modals.forEach(modalName => {
+            this.hideModal(modalName);
+        });
     }
 
     // ========================================
