@@ -1159,6 +1159,140 @@ body {
     }
 }
 
+/* Engine Update Animations */
+.engine-updated {
+    animation: engineUpdateHighlight 2s ease-in-out;
+    border: 2px solid var(--secondary-color) !important;
+    background: rgba(52, 168, 83, 0.1) !important;
+}
+
+@keyframes engineUpdateHighlight {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.7);
+    }
+    25% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 10px rgba(52, 168, 83, 0.3);
+    }
+    50% {
+        transform: scale(1.01);
+        box-shadow: 0 0 0 15px rgba(52, 168, 83, 0.1);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(52, 168, 83, 0);
+    }
+}
+
+/* Engine Metadata Display */
+.engine-metadata {
+    background: rgba(66, 133, 244, 0.05);
+    border: 1px solid rgba(66, 133, 244, 0.1);
+    border-radius: var(--border-radius);
+    padding: 12px;
+}
+
+.engine-metadata .uk-grid > div {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Edit Confirmation Dialog */
+.edit-confirmation-dialog {
+    text-align: left;
+    max-width: 400px;
+}
+
+.edit-confirmation-dialog .critical-issues,
+.edit-confirmation-dialog .warnings {
+    margin: 15px 0;
+}
+
+.edit-confirmation-dialog h4 {
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.edit-confirmation-dialog ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.edit-confirmation-dialog li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 0.85rem;
+    line-height: 1.3;
+}
+
+.critical-issues li {
+    color: var(--accent-color);
+}
+
+.warnings li {
+    color: var(--warning-color);
+}
+
+/* Enhanced Form Status */
+.form-status.warning {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.2);
+    border-radius: 4px;
+    padding: 8px 12px;
+}
+
+.form-status.warning .uk-text-small {
+    opacity: 0.8;
+}
+
+/* Search Interface Updates */
+.search-status {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.default-engine-display {
+    font-size: 0.875rem;
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Smooth transitions for UI updates */
+.engines-list,
+.engine-selection,
+.search-interface {
+    transition: all 0.3s ease-in-out;
+}
+
+.engines-list.updating,
+.engine-selection.updating {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Enhanced checkbox highlighting */
+.engine-checkbox.engine-updated {
+    background: rgba(52, 168, 83, 0.1);
+    border-radius: var(--border-radius);
+    padding: 4px;
+    animation: checkboxUpdateHighlight 1.5s ease-in-out;
+}
+
+@keyframes checkboxUpdateHighlight {
+    0%, 100% {
+        background: rgba(52, 168, 83, 0.1);
+    }
+    50% {
+        background: rgba(52, 168, 83, 0.2);
+    }
+}
+
 .engine-item:hover {
     background-color: rgba(66, 133, 244, 0.02);
 }
