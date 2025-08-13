@@ -315,6 +315,7 @@ class SuperSearchApp {
         this.config.debug = true;
         console.log('🐛 Debug mode enabled');
         window.superSearch = this; // Expose for debugging
+        window.uiManager = this.modules.ui; // Expose UI manager for onclick handlers
     }
 
     /**

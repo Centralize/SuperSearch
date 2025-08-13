@@ -250,6 +250,7 @@ export class UIManager {
      */
     handleManageEnginesClick(event) {
         event.preventDefault();
+        this.setupAddEngineModal();
         this.showModal('addEngine');
     }
 
@@ -258,8 +259,38 @@ export class UIManager {
      */
     async handleAddEngineSubmit(event) {
         event.preventDefault();
-        // Implementation will be added in later tasks
-        console.log('Add engine form submitted');
+
+        try {
+            const formData = new FormData(event.target);
+            const engineData = {
+                id: formData.get('engineId'),
+                name: formData.get('engineName'),
+                url: formData.get('engineUrl'),
+                description: formData.get('engineDescription') || '',
+                category: formData.get('engineCategory') || 'general',
+                isActive: formData.get('engineActive') === 'on',
+                isDefault: formData.get('engineDefault') === 'on'
+            };
+
+            // Add engine through SearchEngineManager
+            await this.modules.searchEngine.addEngine(engineData);
+
+            // Show success notification
+            this.modules.notification.success(`Search engine "${engineData.name}" added successfully!`);
+
+            // Close modal
+            this.hideModal('addEngine');
+
+            // Refresh engine list
+            await this.loadSearchEngines();
+
+            // Reset form
+            event.target.reset();
+
+        } catch (error) {
+            console.error('Failed to add engine:', error);
+            this.modules.notification.error(`Failed to add engine: ${error.message}`);
+        }
     }
 
     /**
@@ -267,8 +298,74 @@ export class UIManager {
      */
     async handleEditEngineSubmit(event) {
         event.preventDefault();
-        // Implementation will be added in later tasks
-        console.log('Edit engine form submitted');
+
+        try {
+            const formData = new FormData(event.target);
+            const originalId = formData.get('originalEngineId');
+            const engineData = {
+                id: formData.get('engineId'),
+                name: formData.get('engineName'),
+                url: formData.get('engineUrl'),
+                description: formData.get('engineDescription') || '',
+                category: formData.get('engineCategory') || 'general',
+                isActive: formData.get('engineActive') === 'on',
+                isDefault: formData.get('engineDefault') === 'on'
+            };
+
+            // Update engine through SearchEngineManager
+            await this.modules.searchEngine.updateEngine(originalId, engineData);
+
+            // Show success notification
+            this.modules.notification.success(`Search engine "${engineData.name}" updated successfully!`);
+
+            // Close modal
+            this.hideModal('editEngine');
+
+            // Refresh engine list
+            await this.loadSearchEngines();
+
+        } catch (error) {
+            console.error('Failed to update engine:', error);
+            this.modules.notification.error(`Failed to update engine: ${error.message}`);
+        }
+    }
+
+    /**
+     * Edit an engine
+     */
+    async editEngine(engineId) {
+        try {
+            const engine = await this.modules.searchEngine.getEngine(engineId);
+            this.setupEditEngineModal(engine);
+            this.showModal('editEngine');
+        } catch (error) {
+            console.error('Failed to load engine for editing:', error);
+            this.modules.notification.error(`Failed to load engine: ${error.message}`);
+        }
+    }
+
+    /**
+     * Delete an engine with confirmation
+     */
+    async deleteEngine(engineId) {
+        try {
+            const engine = await this.modules.searchEngine.getEngine(engineId);
+
+            // Show confirmation dialog
+            const confirmed = confirm(`Are you sure you want to delete the search engine "${engine.name}"?\n\nThis action cannot be undone.`);
+
+            if (confirmed) {
+                await this.modules.searchEngine.deleteEngine(engineId);
+                this.modules.notification.success(`Search engine "${engine.name}" deleted successfully!`);
+
+                // Refresh engine list
+                await this.loadSearchEngines();
+            }
+
+        } catch (error) {
+            console.error('Failed to delete engine:', error);
+            this.modules.notification.error(`Failed to delete engine: ${error.message}`);
+        }
     }
 
     /**
@@ -322,7 +419,10 @@ export class UIManager {
             // Perform the search
             const results = await this.modules.search.search(query, engines);
 
-            // Display results
+            // Open search results in new tabs
+            this.modules.search.openSearchResults(results);
+
+            // Display results summary
             this.displaySearchResults(results, query);
 
             // Hide loading state
@@ -416,14 +516,34 @@ export class UIManager {
         div.dataset.engineId = engine.id;
 
         div.innerHTML = `
-            <img src="${engine.icon}" alt="${engine.name}" class="engine-icon" width="24" height="24">
-            <span class="engine-name">${engine.name}</span>
-            ${engine.isDefault ? '<span class="badge bg-success ms-1">Default</span>' : ''}
+            <div class="d-flex align-items-center">
+                <img src="${engine.icon}" alt="${engine.name}" class="engine-icon me-2" width="24" height="24"
+                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Im0xNSAxNS02LTYiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+'">
+                <div class="flex-grow-1">
+                    <span class="engine-name">${engine.name}</span>
+                    ${engine.isDefault ? '<span class="badge bg-success ms-1">Default</span>' : ''}
+                    ${!engine.isActive ? '<span class="badge bg-secondary ms-1">Inactive</span>' : ''}
+                </div>
+                <div class="engine-actions ms-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                            onclick="event.stopPropagation(); window.uiManager.editEngine('${engine.id}')"
+                            title="Edit Engine">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                            onclick="event.stopPropagation(); window.uiManager.deleteEngine('${engine.id}')"
+                            title="Delete Engine">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
         `;
 
-        // Add click handler for selection
-        div.addEventListener('click', () => {
-            this.toggleEngineSelection(div, engine);
+        // Add click handler for selection (on the main area, not buttons)
+        div.addEventListener('click', (event) => {
+            if (!event.target.closest('.engine-actions')) {
+                this.toggleEngineSelection(div, engine);
+            }
         });
 
         return div;
@@ -607,8 +727,144 @@ export class UIManager {
     }
 
     // ========================================
-    // Modal Management
+    // Modal Setup and Management
     // ========================================
+
+    /**
+     * Set up the add engine modal with form content
+     */
+    setupAddEngineModal() {
+        const modalBody = this.elements.addEngineForm?.querySelector('.modal-body');
+        if (!modalBody) return;
+
+        modalBody.innerHTML = `
+            <div class="mb-3">
+                <label for="engineId" class="form-label">Engine ID *</label>
+                <input type="text" class="form-control" id="engineId" name="engineId" required
+                       pattern="[a-zA-Z0-9_-]+"
+                       placeholder="e.g., custom-search"
+                       title="Only letters, numbers, underscores, and hyphens allowed">
+                <div class="form-text">Unique identifier for the search engine</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="engineName" class="form-label">Engine Name *</label>
+                <input type="text" class="form-control" id="engineName" name="engineName" required
+                       placeholder="e.g., Custom Search Engine">
+                <div class="form-text">Display name for the search engine</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="engineUrl" class="form-label">Search URL Template *</label>
+                <input type="url" class="form-control" id="engineUrl" name="engineUrl" required
+                       placeholder="https://example.com/search?q={query}"
+                       pattern="https?://.*\\{query\\}.*">
+                <div class="form-text">URL template with {query} placeholder for search terms</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="engineDescription" class="form-label">Description</label>
+                <textarea class="form-control" id="engineDescription" name="engineDescription" rows="2"
+                          placeholder="Brief description of the search engine"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="engineCategory" class="form-label">Category</label>
+                <select class="form-select" id="engineCategory" name="engineCategory">
+                    <option value="general">General Search</option>
+                    <option value="academic">Academic</option>
+                    <option value="specialized">Specialized</option>
+                    <option value="privacy">Privacy-Focused</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="engineActive" name="engineActive" checked>
+                    <label class="form-check-label" for="engineActive">
+                        Active (available for searching)
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="engineDefault" name="engineDefault">
+                    <label class="form-check-label" for="engineDefault">
+                        Set as default search engine
+                    </label>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Set up the edit engine modal with form content
+     */
+    setupEditEngineModal(engine) {
+        const modalBody = this.elements.editEngineForm?.querySelector('.modal-body');
+        if (!modalBody) return;
+
+        modalBody.innerHTML = `
+            <input type="hidden" name="originalEngineId" value="${engine.id}">
+
+            <div class="mb-3">
+                <label for="editEngineId" class="form-label">Engine ID *</label>
+                <input type="text" class="form-control" id="editEngineId" name="engineId" required
+                       pattern="[a-zA-Z0-9_-]+" value="${engine.id}"
+                       title="Only letters, numbers, underscores, and hyphens allowed">
+                <div class="form-text">Unique identifier for the search engine</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="editEngineName" class="form-label">Engine Name *</label>
+                <input type="text" class="form-control" id="editEngineName" name="engineName" required
+                       value="${engine.name}">
+                <div class="form-text">Display name for the search engine</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="editEngineUrl" class="form-label">Search URL Template *</label>
+                <input type="url" class="form-control" id="editEngineUrl" name="engineUrl" required
+                       value="${engine.url}"
+                       pattern="https?://.*\\{query\\}.*">
+                <div class="form-text">URL template with {query} placeholder for search terms</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="editEngineDescription" class="form-label">Description</label>
+                <textarea class="form-control" id="editEngineDescription" name="engineDescription" rows="2">${engine.description || ''}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="editEngineCategory" class="form-label">Category</label>
+                <select class="form-select" id="editEngineCategory" name="engineCategory">
+                    <option value="general" ${engine.category === 'general' ? 'selected' : ''}>General Search</option>
+                    <option value="academic" ${engine.category === 'academic' ? 'selected' : ''}>Academic</option>
+                    <option value="specialized" ${engine.category === 'specialized' ? 'selected' : ''}>Specialized</option>
+                    <option value="privacy" ${engine.category === 'privacy' ? 'selected' : ''}>Privacy-Focused</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="editEngineActive" name="engineActive" ${engine.isActive ? 'checked' : ''}>
+                    <label class="form-check-label" for="editEngineActive">
+                        Active (available for searching)
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="editEngineDefault" name="engineDefault" ${engine.isDefault ? 'checked' : ''}>
+                    <label class="form-check-label" for="editEngineDefault">
+                        Set as default search engine
+                    </label>
+                </div>
+            </div>
+        `;
+    }
 
     /**
      * Show a modal by name
