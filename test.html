@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperSearch Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>SuperSearch Application Test</h1>
+    
+    <div class="test-section">
+        <h2>Basic Functionality Tests</h2>
+        <button onclick="testIndexedDB()">Test IndexedDB</button>
+        <button onclick="testModules()">Test Module Loading</button>
+        <button onclick="testSearchEngines()">Test Search Engines</button>
+        <button onclick="testUI()">Test UI Components</button>
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Application Status</h2>
+        <div id="app-status">Loading...</div>
+    </div>
+
+    <script>
+        const results = document.getElementById('test-results');
+        const appStatus = document.getElementById('app-status');
+
+        function addResult(message, type = 'success') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            results.innerHTML = '';
+        }
+
+        async function testIndexedDB() {
+            clearResults();
+            addResult('Testing IndexedDB support...', 'warning');
+            
+            try {
+                if (!window.indexedDB) {
+                    throw new Error('IndexedDB not supported');
+                }
+                addResult('✅ IndexedDB is supported');
+
+                // Test database creation
+                const request = indexedDB.open('SuperSearchTest', 1);
+                request.onsuccess = () => {
+                    addResult('✅ Can create IndexedDB database');
+                    request.result.close();
+                    indexedDB.deleteDatabase('SuperSearchTest');
+                };
+                request.onerror = () => {
+                    addResult('❌ Failed to create IndexedDB database', 'error');
+                };
+            } catch (error) {
+                addResult(`❌ IndexedDB test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testModules() {
+            clearResults();
+            addResult('Testing ES6 module support...', 'warning');
+            
+            try {
+                // Test if modules are supported
+                if (typeof import === 'undefined') {
+                    throw new Error('ES6 modules not supported');
+                }
+                addResult('✅ ES6 modules are supported');
+
+                // Test loading the main app
+                const appModule = await import('./js/app.js');
+                if (appModule) {
+                    addResult('✅ Main application module loaded');
+                } else {
+                    addResult('❌ Failed to load main application module', 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Module test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSearchEngines() {
+            clearResults();
+            addResult('Testing search engine configuration...', 'warning');
+            
+            try {
+                // Test loading default engines
+                const response = await fetch('./assets/data/default-engines.json');
+                if (!response.ok) {
+                    throw new Error(`Failed to load default engines: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addResult(`✅ Default engines loaded: ${data.engines.length} engines found`);
+                
+                // Test engine URLs
+                for (const engine of data.engines) {
+                    if (!engine.url.includes('{query}')) {
+                        addResult(`⚠️ Engine ${engine.name} missing {query} placeholder`, 'warning');
+                    } else {
+                        addResult(`✅ Engine ${engine.name} URL format is valid`);
+                    }
+                }
+            } catch (error) {
+                addResult(`❌ Search engine test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUI() {
+            clearResults();
+            addResult('Testing UI components...', 'warning');
+            
+            try {
+                // Test Bootstrap
+                if (typeof bootstrap === 'undefined') {
+                    addResult('⚠️ Bootstrap not loaded', 'warning');
+                } else {
+                    addResult('✅ Bootstrap is loaded');
+                }
+
+                // Test if main page elements exist
+                const iframe = document.createElement('iframe');
+                iframe.src = './index.html';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                iframe.onload = () => {
+                    const doc = iframe.contentDocument;
+                    
+                    if (doc.getElementById('search-input')) {
+                        addResult('✅ Search input found');
+                    } else {
+                        addResult('❌ Search input not found', 'error');
+                    }
+                    
+                    if (doc.getElementById('search-engines')) {
+                        addResult('✅ Search engines container found');
+                    } else {
+                        addResult('❌ Search engines container not found', 'error');
+                    }
+                    
+                    if (doc.getElementById('add-engine-modal')) {
+                        addResult('✅ Add engine modal found');
+                    } else {
+                        addResult('❌ Add engine modal not found', 'error');
+                    }
+                    
+                    document.body.removeChild(iframe);
+                };
+            } catch (error) {
+                addResult(`❌ UI test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Check application status on load
+        window.addEventListener('load', () => {
+            let status = '🟢 Application appears to be working:\n';
+            status += '• HTML file loads correctly\n';
+            status += '• JavaScript is enabled\n';
+            status += '• Basic DOM manipulation works\n';
+            
+            if (window.indexedDB) {
+                status += '• IndexedDB is supported\n';
+            } else {
+                status += '• ⚠️ IndexedDB not supported\n';
+            }
+            
+            if (typeof fetch !== 'undefined') {
+                status += '• Fetch API is supported\n';
+            } else {
+                status += '• ⚠️ Fetch API not supported\n';
+            }
+            
+            appStatus.innerHTML = status.replace(/\n/g, '<br>');
+        });
+    </script>
+</body>
+</html>
