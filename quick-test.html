@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperSearch Quick Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .test-result { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h1>🔍 SuperSearch Quick Test</h1>
+        <p>This page tests the core functionality of SuperSearch without the full UI.</p>
+        
+        <div id="status" class="status info">
+            🔄 Initializing test environment...
+        </div>
+        
+        <div id="results"></div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="runAllTests()">Run All Tests</button>
+            <button onclick="testSearch()">Test Search</button>
+            <button onclick="testEngines()">Test Engines</button>
+            <button onclick="testDatabase()">Test Database</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SuperSearchApp } from './js/app.js';
+        
+        let app;
+        let testResults = [];
+        
+        // Initialize
+        window.addEventListener('DOMContentLoaded', async () => {
+            const status = document.getElementById('status');
+            
+            try {
+                status.className = 'status info';
+                status.textContent = '🔄 Initializing SuperSearch...';
+                
+                app = new SuperSearchApp();
+                await app.init();
+                
+                status.className = 'status success';
+                status.textContent = '✅ SuperSearch initialized successfully! Ready for testing.';
+                
+                // Expose for testing
+                window.app = app;
+                
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = `❌ Failed to initialize: ${error.message}`;
+                console.error('Initialization error:', error);
+            }
+        });
+        
+        function addResult(message, type = 'info') {
+            testResults.push({ message, type, timestamp: new Date().toLocaleTimeString() });
+            updateResults();
+        }
+        
+        function updateResults() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = testResults.map(result => 
+                `<div class="test-result ${result.type}">
+                    [${result.timestamp}] ${result.message}
+                </div>`
+            ).join('');
+        }
+        
+        window.clearResults = function() {
+            testResults = [];
+            updateResults();
+        };
+        
+        window.runAllTests = async function() {
+            clearResults();
+            addResult('🧪 Starting comprehensive test suite...', 'info');
+            
+            await testDatabase();
+            await testEngines();
+            await testSearch();
+            
+            addResult('🎉 All tests completed!', 'success');
+        };
+        
+        window.testDatabase = async function() {
+            addResult('🗄️ Testing database operations...', 'info');
+            
+            try {
+                if (!app) throw new Error('App not initialized');
+                
+                // Test basic database operations
+                const engines = await app.modules.database.getAll('engines');
+                addResult(`✅ Database: Found ${engines.length} engines`, 'success');
+                
+                const preferences = await app.modules.database.getAll('preferences');
+                addResult(`✅ Database: Found ${preferences.length} preferences`, 'success');
+                
+                // Test database diagnosis
+                const diagnosis = await app.modules.database.diagnoseDatabase();
+                if (diagnosis.issues.length === 0) {
+                    addResult('✅ Database: No issues found', 'success');
+                } else {
+                    addResult(`⚠️ Database: ${diagnosis.issues.length} issues found`, 'warning');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Database test failed: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testEngines = async function() {
+            addResult('🔍 Testing search engines...', 'info');
+            
+            try {
+                if (!app) throw new Error('App not initialized');
+                
+                const allEngines = await app.modules.searchEngine.getAllEngines();
+                addResult(`✅ Engines: Found ${allEngines.length} total engines`, 'success');
+                
+                const activeEngines = app.modules.searchEngine.getActiveEngines();
+                addResult(`✅ Engines: ${activeEngines.length} active engines`, 'success');
+                
+                // Test each active engine
+                activeEngines.forEach(engine => {
+                    if (engine.url && engine.url.includes('{query}')) {
+                        addResult(`✅ Engine "${engine.name}": Valid URL template`, 'success');
+                    } else {
+                        addResult(`❌ Engine "${engine.name}": Invalid URL template`, 'error');
+                    }
+                });
+                
+                if (activeEngines.length === 0) {
+                    addResult('⚠️ No active engines found - search will not work', 'warning');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Engine test failed: ${error.message}`, 'error');
+            }
+        };
+        
+        window.testSearch = async function() {
+            addResult('🔎 Testing search functionality...', 'info');
+            
+            try {
+                if (!app) throw new Error('App not initialized');
+                
+                const activeEngines = app.modules.searchEngine.getActiveEngines();
+                if (activeEngines.length === 0) {
+                    addResult('❌ Cannot test search: No active engines', 'error');
+                    return;
+                }
+                
+                const testQuery = 'test search';
+                addResult(`🔍 Testing search with query: "${testQuery}"`, 'info');
+                
+                // Test search URL building
+                activeEngines.forEach(engine => {
+                    try {
+                        const searchUrl = app.modules.searchHandler.buildSearchUrl(testQuery, engine);
+                        addResult(`✅ Search URL for ${engine.name}: ${searchUrl}`, 'success');
+                    } catch (error) {
+                        addResult(`❌ Failed to build URL for ${engine.name}: ${error.message}`, 'error');
+                    }
+                });
+                
+                // Test full search operation
+                const searchResults = await app.modules.searchHandler.search(testQuery, activeEngines.slice(0, 2));
+                addResult(`✅ Search completed: ${searchResults.length} results`, 'success');
+                
+                // Check for errors in results
+                const errors = searchResults.filter(result => result.error);
+                if (errors.length > 0) {
+                    addResult(`⚠️ ${errors.length} search errors occurred`, 'warning');
+                } else {
+                    addResult('✅ All search operations successful', 'success');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Search test failed: ${error.message}`, 'error');
+            }
+        };
+    </script>
+</body>
+</html>
