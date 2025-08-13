@@ -6,9 +6,20 @@
 class DatabaseManager {
     constructor() {
         this.dbName = 'SuperSearchDB';
-        this.version = 1;
+        this.version = 2; // Increased for performance optimizations
         this.db = null;
         this.isInitialized = false;
+
+        // Performance optimization: Cache frequently accessed data
+        this.engineCache = new Map();
+        this.preferencesCache = null;
+        this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+        this.lastCacheUpdate = 0;
+
+        // Batch operations for better performance
+        this.pendingOperations = [];
+        this.batchTimeout = null;
+        this.batchDelay = 100; // 100ms batch delay
     }
 
     /**
@@ -608,5 +619,247 @@ class DatabaseManager {
         } catch {
             return 'Unknown';
         }
+    }
+
+    // ==================== PERFORMANCE OPTIMIZATIONS ====================
+
+    /**
+     * Get engines with caching for better performance
+     * @returns {Promise<Array>} Cached or fresh engine data
+     */
+    async getEnginesOptimized() {
+        const now = Date.now();
+
+        // Check if cache is valid
+        if (this.engineCache.size > 0 && (now - this.lastCacheUpdate) < this.cacheTimeout) {
+            return Array.from(this.engineCache.values());
+        }
+
+        // Fetch fresh data and update cache
+        const engines = await this.getAllEngines();
+        this.updateEngineCache(engines);
+
+        return engines;
+    }
+
+    /**
+     * Update engine cache
+     * @param {Array} engines - Engine data to cache
+     */
+    updateEngineCache(engines) {
+        this.engineCache.clear();
+        engines.forEach(engine => {
+            this.engineCache.set(engine.id, engine);
+        });
+        this.lastCacheUpdate = Date.now();
+    }
+
+    /**
+     * Invalidate engine cache
+     */
+    invalidateEngineCache() {
+        this.engineCache.clear();
+        this.lastCacheUpdate = 0;
+    }
+
+    /**
+     * Get preferences with caching
+     * @returns {Promise<Object>} Cached or fresh preferences
+     */
+    async getPreferencesOptimized() {
+        const now = Date.now();
+
+        // Check if cache is valid
+        if (this.preferencesCache && (now - this.lastCacheUpdate) < this.cacheTimeout) {
+            return this.preferencesCache;
+        }
+
+        // Fetch fresh data and cache
+        const preferences = await this.getPreferences();
+        this.preferencesCache = preferences;
+
+        return preferences;
+    }
+
+    /**
+     * Batch multiple operations for better performance
+     * @param {Function} operation - Operation to batch
+     */
+    batchOperation(operation) {
+        this.pendingOperations.push(operation);
+
+        // Clear existing timeout
+        if (this.batchTimeout) {
+            clearTimeout(this.batchTimeout);
+        }
+
+        // Set new timeout to execute batch
+        this.batchTimeout = setTimeout(() => {
+            this.executeBatchOperations();
+        }, this.batchDelay);
+    }
+
+    /**
+     * Execute batched operations
+     */
+    async executeBatchOperations() {
+        if (this.pendingOperations.length === 0) return;
+
+        const operations = [...this.pendingOperations];
+        this.pendingOperations = [];
+        this.batchTimeout = null;
+
+        try {
+            // Execute all operations in a single transaction when possible
+            await this.ensureDb();
+
+            const transaction = this.db.transaction(['engines', 'preferences', 'searchHistory'], 'readwrite');
+
+            // Execute operations
+            for (const operation of operations) {
+                try {
+                    await operation(transaction);
+                } catch (error) {
+                    Utils.logError(error, 'Batch operation failed');
+                }
+            }
+
+            // Invalidate caches after batch operations
+            this.invalidateEngineCache();
+            this.preferencesCache = null;
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to execute batch operations');
+        }
+    }
+
+    /**
+     * Optimized search history with pagination
+     * @param {number} offset - Offset for pagination
+     * @param {number} limit - Limit for pagination
+     * @param {Object} filters - Search filters
+     * @returns {Promise<Object>} Paginated history results
+     */
+    async getSearchHistoryPaginated(offset = 0, limit = 50, filters = {}) {
+        await this.ensureDb();
+
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('searchHistory');
+            const index = store.index('timestamp');
+            const request = index.openCursor(null, 'prev');
+
+            const results = [];
+            let count = 0;
+            let skipped = 0;
+
+            request.onsuccess = (event) => {
+                const cursor = event.target.result;
+
+                if (cursor) {
+                    const entry = cursor.value;
+
+                    // Apply filters
+                    if (this.matchesHistoryFilters(entry, filters)) {
+                        if (skipped >= offset && count < limit) {
+                            results.push(entry);
+                            count++;
+                        } else if (skipped < offset) {
+                            skipped++;
+                        }
+                    }
+
+                    if (count < limit) {
+                        cursor.continue();
+                    } else {
+                        resolve({
+                            results,
+                            hasMore: true,
+                            total: skipped + count
+                        });
+                    }
+                } else {
+                    resolve({
+                        results,
+                        hasMore: false,
+                        total: skipped + count
+                    });
+                }
+            };
+
+            request.onerror = () => {
+                Utils.logError(request.error, 'Failed to get paginated search history');
+                reject(new Error('Failed to retrieve search history'));
+            };
+        });
+    }
+
+    /**
+     * Check if history entry matches filters
+     * @param {Object} entry - History entry
+     * @param {Object} filters - Filters to apply
+     * @returns {boolean} Whether entry matches filters
+     */
+    matchesHistoryFilters(entry, filters) {
+        if (filters.query && !entry.query.toLowerCase().includes(filters.query.toLowerCase())) {
+            return false;
+        }
+
+        if (filters.engine && entry.engine !== filters.engine) {
+            return false;
+        }
+
+        if (filters.dateFrom && new Date(entry.timestamp) < new Date(filters.dateFrom)) {
+            return false;
+        }
+
+        if (filters.dateTo && new Date(entry.timestamp) > new Date(filters.dateTo)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Bulk delete operations for better performance
+     * @param {Array} ids - Array of IDs to delete
+     * @param {string} storeName - Store name
+     * @returns {Promise<number>} Number of deleted items
+     */
+    async bulkDelete(ids, storeName) {
+        await this.ensureDb();
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+
+            let deletedCount = 0;
+            let completedCount = 0;
+
+            ids.forEach(id => {
+                const request = store.delete(id);
+
+                request.onsuccess = () => {
+                    deletedCount++;
+                    completedCount++;
+
+                    if (completedCount === ids.length) {
+                        resolve(deletedCount);
+                    }
+                };
+
+                request.onerror = () => {
+                    completedCount++;
+
+                    if (completedCount === ids.length) {
+                        resolve(deletedCount);
+                    }
+                };
+            });
+
+            transaction.onerror = () => {
+                Utils.logError(transaction.error, 'Bulk delete transaction failed');
+                reject(new Error('Bulk delete operation failed'));
+            };
+        });
     }
 }

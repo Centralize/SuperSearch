@@ -312,6 +312,261 @@ const Utils = {
             console.error(error.stack);
         }
     }
+
+    // ==================== DOM PERFORMANCE OPTIMIZATIONS ====================
+
+    /**
+     * Batch DOM updates to minimize reflows and repaints
+     * @param {Function} updateFunction - Function containing DOM updates
+     * @returns {Promise<void>}
+     */
+    static async batchDOMUpdates(updateFunction) {
+        return new Promise((resolve) => {
+            // Use requestAnimationFrame for optimal timing
+            requestAnimationFrame(() => {
+                try {
+                    updateFunction();
+                    resolve();
+                } catch (error) {
+                    Utils.logError(error, 'Batch DOM update failed');
+                    resolve();
+                }
+            });
+        });
+    }
+
+    /**
+     * Create document fragment for efficient DOM manipulation
+     * @param {Array} elements - Array of elements to add to fragment
+     * @returns {DocumentFragment}
+     */
+    static createDocumentFragment(elements) {
+        const fragment = document.createDocumentFragment();
+        elements.forEach(element => {
+            if (element instanceof Node) {
+                fragment.appendChild(element);
+            } else if (typeof element === 'string') {
+                const div = document.createElement('div');
+                div.innerHTML = element;
+                while (div.firstChild) {
+                    fragment.appendChild(div.firstChild);
+                }
+            }
+        });
+        return fragment;
+    }
+
+    /**
+     * Debounce function calls for performance
+     * @param {Function} func - Function to debounce
+     * @param {number} delay - Delay in milliseconds
+     * @returns {Function} Debounced function
+     */
+    static debounce(func, delay) {
+        let timeoutId;
+        return function (...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    /**
+     * Throttle function calls for performance
+     * @param {Function} func - Function to throttle
+     * @param {number} limit - Time limit in milliseconds
+     * @returns {Function} Throttled function
+     */
+    static throttle(func, limit) {
+        let inThrottle;
+        return function (...args) {
+            if (!inThrottle) {
+                func.apply(this, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    }
+
+    /**
+     * Lazy load images for better performance
+     * @param {Element} container - Container to search for images
+     */
+    static lazyLoadImages(container = document) {
+        const images = container.querySelectorAll('img[data-src]');
+
+        if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                        img.classList.remove('lazy');
+                        observer.unobserve(img);
+                    }
+                });
+            });
+
+            images.forEach(img => imageObserver.observe(img));
+        } else {
+            // Fallback for browsers without IntersectionObserver
+            images.forEach(img => {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+                img.classList.remove('lazy');
+            });
+        }
+    }
+
+    /**
+     * Virtual scrolling for large lists
+     * @param {Element} container - Container element
+     * @param {Array} items - Array of items to render
+     * @param {Function} renderItem - Function to render each item
+     * @param {number} itemHeight - Height of each item
+     */
+    static initVirtualScrolling(container, items, renderItem, itemHeight = 50) {
+        const viewportHeight = container.clientHeight;
+        const visibleItems = Math.ceil(viewportHeight / itemHeight) + 2; // Buffer
+
+        let startIndex = 0;
+        let endIndex = Math.min(visibleItems, items.length);
+
+        const renderVisibleItems = () => {
+            const fragment = document.createDocumentFragment();
+
+            for (let i = startIndex; i < endIndex; i++) {
+                if (items[i]) {
+                    const element = renderItem(items[i], i);
+                    element.style.position = 'absolute';
+                    element.style.top = `${i * itemHeight}px`;
+                    element.style.height = `${itemHeight}px`;
+                    fragment.appendChild(element);
+                }
+            }
+
+            container.innerHTML = '';
+            container.appendChild(fragment);
+            container.style.height = `${items.length * itemHeight}px`;
+            container.style.position = 'relative';
+        };
+
+        const handleScroll = Utils.throttle(() => {
+            const scrollTop = container.scrollTop;
+            const newStartIndex = Math.floor(scrollTop / itemHeight);
+            const newEndIndex = Math.min(newStartIndex + visibleItems, items.length);
+
+            if (newStartIndex !== startIndex || newEndIndex !== endIndex) {
+                startIndex = newStartIndex;
+                endIndex = newEndIndex;
+                renderVisibleItems();
+            }
+        }, 16); // ~60fps
+
+        container.addEventListener('scroll', handleScroll);
+        renderVisibleItems();
+
+        return {
+            update: (newItems) => {
+                items = newItems;
+                startIndex = 0;
+                endIndex = Math.min(visibleItems, items.length);
+                renderVisibleItems();
+            },
+            destroy: () => {
+                container.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }
+
+    /**
+     * Optimize CSS animations by using transform and opacity
+     * @param {Element} element - Element to animate
+     * @param {Object} properties - Animation properties
+     * @param {number} duration - Animation duration in ms
+     * @returns {Promise<void>}
+     */
+    static animateOptimized(element, properties, duration = 300) {
+        return new Promise((resolve) => {
+            const startTime = performance.now();
+            const startValues = {};
+
+            // Get initial values
+            Object.keys(properties).forEach(prop => {
+                if (prop === 'opacity') {
+                    startValues[prop] = parseFloat(getComputedStyle(element).opacity) || 1;
+                } else if (prop === 'translateX' || prop === 'translateY' || prop === 'scale') {
+                    startValues[prop] = 0;
+                }
+            });
+
+            const animate = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Easing function (ease-out)
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+
+                // Apply transforms
+                let transform = '';
+                Object.keys(properties).forEach(prop => {
+                    const startValue = startValues[prop];
+                    const endValue = properties[prop];
+                    const currentValue = startValue + (endValue - startValue) * easeOut;
+
+                    if (prop === 'opacity') {
+                        element.style.opacity = currentValue;
+                    } else if (prop === 'translateX') {
+                        transform += `translateX(${currentValue}px) `;
+                    } else if (prop === 'translateY') {
+                        transform += `translateY(${currentValue}px) `;
+                    } else if (prop === 'scale') {
+                        transform += `scale(${currentValue}) `;
+                    }
+                });
+
+                if (transform) {
+                    element.style.transform = transform.trim();
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    resolve();
+                }
+            };
+
+            requestAnimationFrame(animate);
+        });
+    }
+
+    /**
+     * Measure and log performance metrics
+     * @param {string} name - Performance mark name
+     * @param {Function} operation - Operation to measure
+     * @returns {Promise<any>} Operation result
+     */
+    static async measurePerformance(name, operation) {
+        const startMark = `${name}-start`;
+        const endMark = `${name}-end`;
+        const measureName = `${name}-duration`;
+
+        try {
+            performance.mark(startMark);
+            const result = await operation();
+            performance.mark(endMark);
+            performance.measure(measureName, startMark, endMark);
+
+            const measure = performance.getEntriesByName(measureName)[0];
+            console.log(`Performance: ${name} took ${measure.duration.toFixed(2)}ms`);
+
+            return result;
+        } catch (error) {
+            performance.mark(endMark);
+            performance.measure(measureName, startMark, endMark);
+            throw error;
+        }
+    }
 };
 
 // Export for use in other modules

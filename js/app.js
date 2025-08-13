@@ -69,6 +69,9 @@ class SuperSearchApp {
             // Initialize keyboard shortcuts
             this.initializeKeyboardShortcuts();
 
+        // Initialize performance optimizations
+        this.initializePerformanceOptimizations();
+
             Utils.showNotification('SuperSearch initialized successfully', 'success');
 
             // Add test methods to window for development
@@ -8094,6 +8097,201 @@ class SuperSearchApp {
             Utils.showNotification('US-018 acceptance testing failed', 'danger');
             throw error;
         }
+    }
+
+    /**
+     * Initialize performance optimizations
+     */
+    initializePerformanceOptimizations() {
+        try {
+            // Initialize debounced search
+            this.debouncedSearch = Utils.debounce(this.performSearch.bind(this), 300);
+
+            // Initialize throttled scroll handlers
+            this.throttledScrollHandler = Utils.throttle(this.handleScroll.bind(this), 16);
+
+            // Initialize lazy loading for images
+            Utils.lazyLoadImages();
+
+            // Add performance monitoring
+            this.initializePerformanceMonitoring();
+
+            // Optimize existing DOM elements
+            this.optimizeExistingDOM();
+
+            console.log('Performance optimizations initialized');
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to initialize performance optimizations');
+        }
+    }
+
+    /**
+     * Initialize performance monitoring
+     */
+    initializePerformanceMonitoring() {
+        // Monitor search performance
+        this.originalPerformSearch = this.performSearch;
+        this.performSearch = async (...args) => {
+            return Utils.measurePerformance('search-operation', () => {
+                return this.originalPerformSearch.apply(this, args);
+            });
+        };
+
+        // Monitor DOM updates
+        this.monitorDOMUpdates();
+    }
+
+    /**
+     * Monitor DOM updates for performance
+     */
+    monitorDOMUpdates() {
+        if ('PerformanceObserver' in window) {
+            const observer = new PerformanceObserver((list) => {
+                const entries = list.getEntries();
+                entries.forEach(entry => {
+                    if (entry.entryType === 'measure' && entry.duration > 16) {
+                        console.warn(`Slow operation detected: ${entry.name} took ${entry.duration.toFixed(2)}ms`);
+                    }
+                });
+            });
+
+            try {
+                observer.observe({ entryTypes: ['measure'] });
+            } catch (error) {
+                // Fallback for browsers that don't support this
+                console.log('Performance monitoring not available');
+            }
+        }
+    }
+
+    /**
+     * Optimize existing DOM elements
+     */
+    optimizeExistingDOM() {
+        // Add will-change property to animated elements
+        const animatedElements = document.querySelectorAll('.engine-card, .uk-button, .uk-modal-dialog');
+        animatedElements.forEach(element => {
+            element.style.willChange = 'transform, opacity';
+        });
+
+        // Optimize scroll containers
+        const scrollContainers = document.querySelectorAll('.history-list-container, .uk-modal-body');
+        scrollContainers.forEach(container => {
+            container.style.contain = 'layout style paint';
+            container.style.overflowAnchor = 'none';
+        });
+
+        // Add passive event listeners where appropriate
+        this.addPassiveEventListeners();
+    }
+
+    /**
+     * Add passive event listeners for better scroll performance
+     */
+    addPassiveEventListeners() {
+        const scrollElements = document.querySelectorAll('.history-list-container, .uk-modal-body, .results-container');
+
+        scrollElements.forEach(element => {
+            // Add passive scroll listeners
+            element.addEventListener('scroll', this.throttledScrollHandler, { passive: true });
+        });
+    }
+
+    /**
+     * Handle scroll events (throttled)
+     */
+    handleScroll(event) {
+        const element = event.target;
+        const scrollTop = element.scrollTop;
+        const scrollHeight = element.scrollHeight;
+        const clientHeight = element.clientHeight;
+
+        // Trigger lazy loading if near bottom
+        if (scrollTop + clientHeight >= scrollHeight - 100) {
+            this.loadMoreContent(element);
+        }
+    }
+
+    /**
+     * Load more content when scrolling near bottom
+     * @param {Element} element - Scrolling element
+     */
+    loadMoreContent(element) {
+        if (element.classList.contains('history-list-container')) {
+            this.loadMoreHistory();
+        }
+    }
+
+    /**
+     * Load more history entries with pagination
+     */
+    async loadMoreHistory() {
+        try {
+            if (this.loadingMoreHistory) return;
+            this.loadingMoreHistory = true;
+
+            const currentCount = document.querySelectorAll('.history-entry').length;
+            const moreHistory = await this.dbManager.getSearchHistoryPaginated(currentCount, 20);
+
+            if (moreHistory.results.length > 0) {
+                await this.appendHistoryEntries(moreHistory.results);
+            }
+
+        } catch (error) {
+            Utils.logError(error, 'Failed to load more history');
+        } finally {
+            this.loadingMoreHistory = false;
+        }
+    }
+
+    /**
+     * Append history entries efficiently
+     * @param {Array} entries - History entries to append
+     */
+    async appendHistoryEntries(entries) {
+        const historyList = document.getElementById('historyList');
+        if (!historyList) return;
+
+        const elements = entries.map(entry => this.createHistoryEntryElement(entry));
+        const fragment = Utils.createDocumentFragment(elements);
+
+        await Utils.batchDOMUpdates(() => {
+            historyList.appendChild(fragment);
+        });
+    }
+
+    /**
+     * Create history entry element efficiently
+     * @param {Object} entry - History entry data
+     * @returns {Element} History entry element
+     */
+    createHistoryEntryElement(entry) {
+        const div = document.createElement('div');
+        div.className = 'history-entry uk-margin-small';
+        div.innerHTML = `
+            <div class="uk-card uk-card-default uk-card-body uk-card-small">
+                <div class="uk-flex uk-flex-between uk-flex-middle">
+                    <div class="uk-flex-1">
+                        <div class="uk-text-bold">${Utils.escapeHtml(entry.query)}</div>
+                        <div class="uk-text-small uk-text-muted">
+                            ${entry.engine} • ${Utils.formatDate(entry.timestamp)}
+                        </div>
+                    </div>
+                    <div class="uk-flex uk-flex-middle uk-flex-nowrap">
+                        <button class="uk-button uk-button-small uk-button-primary uk-margin-small-right"
+                                onclick="app.repeatSearch('${Utils.escapeHtml(entry.query)}', '${entry.engine}')">
+                            <span uk-icon="refresh"></span>
+                        </button>
+                        <button class="uk-button uk-button-small uk-button-danger"
+                                onclick="app.deleteHistoryEntry(${entry.id})">
+                            <span uk-icon="trash"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        return div;
     }
 }
 
