@@ -124,6 +124,12 @@ export class UIManager {
             this.addEventListener(this.elements.editEngineForm, 'submit', this.handleEditEngineSubmit.bind(this));
         }
 
+        // History modal events
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+        if (clearHistoryBtn) {
+            this.addEventListener(clearHistoryBtn, 'click', this.handleClearHistory.bind(this));
+        }
+
         // Global keyboard events
         this.addEventListener(document, 'keydown', this.handleGlobalKeydown.bind(this));
 
@@ -235,6 +241,7 @@ export class UIManager {
      */
     handleHistoryClick(event) {
         event.preventDefault();
+        this.setupHistoryModal();
         this.showModal('history');
     }
 
@@ -273,6 +280,16 @@ export class UIManager {
                 isActive: formData.get('engineActive') === 'on',
                 isDefault: formData.get('engineDefault') === 'on'
             };
+
+            // Validate form data
+            const validation = this.validateEngineData(engineData);
+            if (!validation.isValid) {
+                this.showFormErrors('add-engine-form', validation.errors);
+                return;
+            }
+
+            // Clear any existing errors
+            this.clearFormErrors('add-engine-form');
 
             // Add engine through SearchEngineManager
             await this.modules.searchEngine.addEngine(engineData);
@@ -798,6 +815,11 @@ export class UIManager {
                 </div>
             </div>
         `;
+
+        // Set up real-time validation
+        setTimeout(() => {
+            this.setupRealTimeValidation('add-engine-form');
+        }, 100);
     }
 
     /**
@@ -987,6 +1009,229 @@ export class UIManager {
     }
 
     /**
+     * Set up the history modal with content
+     */
+    async setupHistoryModal() {
+        const historyContent = document.getElementById('history-content');
+        if (!historyContent) return;
+
+        try {
+            // Load search history
+            const history = await this.modules.database.loadSearchHistory({ limit: 50 });
+
+            if (history.length === 0) {
+                historyContent.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock-history display-4 text-muted"></i>
+                        <h5 class="mt-3">No Search History</h5>
+                        <p class="text-muted">Your search history will appear here after you perform searches.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            historyContent.innerHTML = `
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="history-search" placeholder="Search history...">
+                        <button class="btn btn-outline-secondary" type="button" id="clear-search">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="history-list" class="list-group" style="max-height: 400px; overflow-y: auto;">
+                    ${history.map(item => this.createHistoryItem(item)).join('')}
+                </div>
+
+                <div class="mt-3 text-muted small">
+                    <i class="bi bi-info-circle"></i>
+                    Showing ${history.length} most recent searches
+                </div>
+            `;
+
+            // Set up history search functionality
+            this.setupHistorySearch(history);
+
+        } catch (error) {
+            console.error('Failed to load search history:', error);
+            historyContent.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6>Error Loading History</h6>
+                    <p class="mb-0">Failed to load search history: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Create a history item element
+     */
+    createHistoryItem(historyItem) {
+        const date = new Date(historyItem.timestamp);
+        const timeAgo = this.getTimeAgo(date);
+        const engines = Array.isArray(historyItem.engines) ? historyItem.engines : [];
+
+        return `
+            <div class="list-group-item list-group-item-action history-item" data-query="${historyItem.query}">
+                <div class="d-flex w-100 justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">${this.escapeHtml(historyItem.query)}</h6>
+                        <p class="mb-1 small text-muted">
+                            <i class="bi bi-search me-1"></i>
+                            Searched with: ${engines.join(', ') || 'Unknown engines'}
+                        </p>
+                        <small class="text-muted">
+                            <i class="bi bi-clock me-1"></i>
+                            ${timeAgo}
+                        </small>
+                    </div>
+                    <div class="btn-group-vertical btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary btn-sm"
+                                onclick="window.uiManager.repeatSearch('${this.escapeHtml(historyItem.query)}')"
+                                title="Repeat Search">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm"
+                                onclick="window.uiManager.deleteHistoryItem('${historyItem.id}')"
+                                title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Set up history search functionality
+     */
+    setupHistorySearch(allHistory) {
+        const searchInput = document.getElementById('history-search');
+        const clearBtn = document.getElementById('clear-search');
+        const historyList = document.getElementById('history-list');
+
+        if (!searchInput || !historyList) return;
+
+        // Search functionality
+        searchInput.addEventListener('input', (event) => {
+            const query = event.target.value.toLowerCase();
+
+            if (query === '') {
+                // Show all history
+                historyList.innerHTML = allHistory.map(item => this.createHistoryItem(item)).join('');
+            } else {
+                // Filter history
+                const filtered = allHistory.filter(item =>
+                    item.query.toLowerCase().includes(query)
+                );
+
+                if (filtered.length === 0) {
+                    historyList.innerHTML = `
+                        <div class="text-center py-3 text-muted">
+                            <i class="bi bi-search"></i>
+                            No matching searches found
+                        </div>
+                    `;
+                } else {
+                    historyList.innerHTML = filtered.map(item => this.createHistoryItem(item)).join('');
+                }
+            }
+        });
+
+        // Clear search
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                historyList.innerHTML = allHistory.map(item => this.createHistoryItem(item)).join('');
+            });
+        }
+    }
+
+    /**
+     * Repeat a search from history
+     */
+    async repeatSearch(query) {
+        // Close history modal
+        this.hideModal('history');
+
+        // Set search input
+        if (this.elements.searchInput) {
+            this.elements.searchInput.value = query;
+        }
+
+        // Perform search
+        await this.performSearch(query);
+    }
+
+    /**
+     * Delete a history item
+     */
+    async deleteHistoryItem(itemId) {
+        try {
+            await this.modules.database.delete('searchHistory', parseInt(itemId));
+            this.modules.notification.success('History item deleted');
+
+            // Refresh history modal
+            this.setupHistoryModal();
+
+        } catch (error) {
+            console.error('Failed to delete history item:', error);
+            this.modules.notification.error(`Failed to delete: ${error.message}`);
+        }
+    }
+
+    /**
+     * Handle clear history button click
+     */
+    async handleClearHistory(event) {
+        event.preventDefault();
+
+        const confirmed = confirm('Are you sure you want to clear all search history? This action cannot be undone.');
+
+        if (confirmed) {
+            try {
+                await this.modules.database.clear('searchHistory');
+                this.modules.notification.success('Search history cleared');
+
+                // Refresh history modal
+                this.setupHistoryModal();
+
+            } catch (error) {
+                console.error('Failed to clear history:', error);
+                this.modules.notification.error(`Failed to clear history: ${error.message}`);
+            }
+        }
+    }
+
+    /**
+     * Get time ago string
+     */
+    getTimeAgo(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+        return date.toLocaleDateString();
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
      * Show a modal by name
      */
     showModal(modalName) {
@@ -1037,6 +1282,240 @@ export class UIManager {
             return this.modules.notification.show(message, type, options);
         } else {
             console.log(`📢 ${type.toUpperCase()}: ${message}`);
+        }
+    }
+
+    // ========================================
+    // Form Validation
+    // ========================================
+
+    /**
+     * Validate engine data
+     * @param {Object} engineData - Engine data to validate
+     * @returns {Object} Validation result
+     */
+    validateEngineData(engineData) {
+        const errors = {};
+        let isValid = true;
+
+        // Validate ID
+        if (!engineData.id || engineData.id.trim() === '') {
+            errors.engineId = 'Engine ID is required';
+            isValid = false;
+        } else if (!/^[a-zA-Z0-9_-]+$/.test(engineData.id)) {
+            errors.engineId = 'Engine ID can only contain letters, numbers, underscores, and hyphens';
+            isValid = false;
+        } else if (engineData.id.length < 2) {
+            errors.engineId = 'Engine ID must be at least 2 characters long';
+            isValid = false;
+        } else if (engineData.id.length > 50) {
+            errors.engineId = 'Engine ID must be less than 50 characters';
+            isValid = false;
+        }
+
+        // Validate name
+        if (!engineData.name || engineData.name.trim() === '') {
+            errors.engineName = 'Engine name is required';
+            isValid = false;
+        } else if (engineData.name.length < 2) {
+            errors.engineName = 'Engine name must be at least 2 characters long';
+            isValid = false;
+        } else if (engineData.name.length > 100) {
+            errors.engineName = 'Engine name must be less than 100 characters';
+            isValid = false;
+        }
+
+        // Validate URL
+        if (!engineData.url || engineData.url.trim() === '') {
+            errors.engineUrl = 'Search URL is required';
+            isValid = false;
+        } else {
+            // Check if URL contains {query} placeholder
+            if (!engineData.url.includes('{query}')) {
+                errors.engineUrl = 'URL must contain {query} placeholder for search terms';
+                isValid = false;
+            } else {
+                // Validate URL format
+                try {
+                    const testUrl = engineData.url.replace('{query}', 'test');
+                    const url = new URL(testUrl);
+
+                    // Must be HTTP or HTTPS
+                    if (!['http:', 'https:'].includes(url.protocol)) {
+                        errors.engineUrl = 'URL must use HTTP or HTTPS protocol';
+                        isValid = false;
+                    }
+                } catch (error) {
+                    errors.engineUrl = 'Invalid URL format';
+                    isValid = false;
+                }
+            }
+        }
+
+        // Validate description length
+        if (engineData.description && engineData.description.length > 500) {
+            errors.engineDescription = 'Description must be less than 500 characters';
+            isValid = false;
+        }
+
+        return { isValid, errors };
+    }
+
+    /**
+     * Show form validation errors
+     * @param {string} formId - Form ID
+     * @param {Object} errors - Validation errors
+     */
+    showFormErrors(formId, errors) {
+        // Clear existing errors first
+        this.clearFormErrors(formId);
+
+        // Show new errors
+        Object.entries(errors).forEach(([fieldName, errorMessage]) => {
+            const field = document.querySelector(`#${formId} [name="${fieldName}"]`);
+            if (field) {
+                // Add error class to field
+                field.classList.add('is-invalid');
+
+                // Create or update error message
+                let errorDiv = field.parentNode.querySelector('.invalid-feedback');
+                if (!errorDiv) {
+                    errorDiv = document.createElement('div');
+                    errorDiv.className = 'invalid-feedback';
+                    field.parentNode.appendChild(errorDiv);
+                }
+                errorDiv.textContent = errorMessage;
+            }
+        });
+    }
+
+    /**
+     * Clear form validation errors
+     * @param {string} formId - Form ID
+     */
+    clearFormErrors(formId) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        // Remove error classes and messages
+        const invalidFields = form.querySelectorAll('.is-invalid');
+        invalidFields.forEach(field => {
+            field.classList.remove('is-invalid');
+        });
+
+        const errorMessages = form.querySelectorAll('.invalid-feedback');
+        errorMessages.forEach(msg => {
+            msg.remove();
+        });
+    }
+
+    /**
+     * Set up real-time validation for a form
+     * @param {string} formId - Form ID
+     */
+    setupRealTimeValidation(formId) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        // Add event listeners for real-time validation
+        const fields = form.querySelectorAll('input, select, textarea');
+        fields.forEach(field => {
+            field.addEventListener('blur', () => {
+                this.validateSingleField(field);
+            });
+
+            field.addEventListener('input', () => {
+                // Clear error on input
+                if (field.classList.contains('is-invalid')) {
+                    field.classList.remove('is-invalid');
+                    const errorDiv = field.parentNode.querySelector('.invalid-feedback');
+                    if (errorDiv) {
+                        errorDiv.remove();
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * Validate a single form field
+     * @param {HTMLElement} field - Form field element
+     */
+    validateSingleField(field) {
+        const fieldName = field.name;
+        const fieldValue = field.value;
+
+        // Create temporary engine data for validation
+        const tempData = {};
+        tempData[fieldName] = fieldValue;
+
+        // Validate based on field type
+        let error = null;
+
+        switch (fieldName) {
+            case 'engineId':
+                if (!fieldValue.trim()) {
+                    error = 'Engine ID is required';
+                } else if (!/^[a-zA-Z0-9_-]+$/.test(fieldValue)) {
+                    error = 'Only letters, numbers, underscores, and hyphens allowed';
+                } else if (fieldValue.length < 2) {
+                    error = 'Must be at least 2 characters long';
+                } else if (fieldValue.length > 50) {
+                    error = 'Must be less than 50 characters';
+                }
+                break;
+
+            case 'engineName':
+                if (!fieldValue.trim()) {
+                    error = 'Engine name is required';
+                } else if (fieldValue.length < 2) {
+                    error = 'Must be at least 2 characters long';
+                } else if (fieldValue.length > 100) {
+                    error = 'Must be less than 100 characters';
+                }
+                break;
+
+            case 'engineUrl':
+                if (!fieldValue.trim()) {
+                    error = 'Search URL is required';
+                } else if (!fieldValue.includes('{query}')) {
+                    error = 'Must contain {query} placeholder';
+                } else {
+                    try {
+                        const testUrl = fieldValue.replace('{query}', 'test');
+                        const url = new URL(testUrl);
+                        if (!['http:', 'https:'].includes(url.protocol)) {
+                            error = 'Must use HTTP or HTTPS protocol';
+                        }
+                    } catch {
+                        error = 'Invalid URL format';
+                    }
+                }
+                break;
+
+            case 'engineDescription':
+                if (fieldValue.length > 500) {
+                    error = 'Must be less than 500 characters';
+                }
+                break;
+        }
+
+        // Show or clear error
+        if (error) {
+            field.classList.add('is-invalid');
+            let errorDiv = field.parentNode.querySelector('.invalid-feedback');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'invalid-feedback';
+                field.parentNode.appendChild(errorDiv);
+            }
+            errorDiv.textContent = error;
+        } else {
+            field.classList.remove('is-invalid');
+            const errorDiv = field.parentNode.querySelector('.invalid-feedback');
+            if (errorDiv) {
+                errorDiv.remove();
+            }
         }
     }
 
