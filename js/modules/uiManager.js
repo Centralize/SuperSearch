@@ -50,6 +50,16 @@ export class UIManager {
      * Cache frequently used DOM elements
      */
     cacheElements() {
+        // Check if we're in a minimal environment (like test pages)
+        const hasMainUI = document.getElementById('search-form') !== null;
+
+        if (!hasMainUI) {
+            console.log('🎨 UIManager: Running in minimal mode (no main UI elements)');
+            this.isMinimalMode = true;
+            this.elements = {}; // Empty elements object for minimal mode
+            return;
+        }
+
         this.elements = {
             // Search form elements
             searchForm: document.getElementById('search-form'),
@@ -104,6 +114,12 @@ export class UIManager {
      * Set up all event listeners
      */
     setupEventListeners() {
+        // Skip event listeners in minimal mode
+        if (this.isMinimalMode) {
+            console.log('🎨 UIManager: Skipping event listeners in minimal mode');
+            return;
+        }
+
         // Search form events
         this.addEventListener(this.elements.searchForm, 'submit', this.handleSearchSubmit.bind(this));
         this.addEventListener(this.elements.searchInput, 'input', this.handleSearchInput.bind(this));
@@ -156,6 +172,12 @@ export class UIManager {
         // Initialize notification manager
         if (this.modules.notification) {
             this.modules.notification.init();
+        }
+
+        // Skip UI initialization in minimal mode
+        if (this.isMinimalMode) {
+            console.log('🎨 UIManager: Skipping UI state initialization in minimal mode');
+            return;
         }
 
         // Load and display search engines
@@ -478,6 +500,12 @@ export class UIManager {
      * Load and display search engines
      */
     async loadSearchEngines() {
+        // Skip in minimal mode
+        if (this.isMinimalMode) {
+            console.log('🎨 UIManager: Skipping loadSearchEngines in minimal mode');
+            return;
+        }
+
         try {
             const engines = await this.modules.database.getAll('engines');
             this.displaySearchEngines(engines);
