@@ -463,10 +463,7 @@ export class UIManager {
             // Perform the search
             const results = await this.modules.search.search(query, engines);
 
-            // Open search results in new tabs
-            this.modules.search.openSearchResults(results);
-
-            // Display results summary
+            // Display results in the interface (no longer auto-opening tabs)
             this.displaySearchResults(results, query);
 
             // Hide loading state
@@ -656,11 +653,132 @@ export class UIManager {
             heading.textContent = `Search Results for "${query}"`;
         }
 
+        // Create summary section
+        this.createResultsSummary(results, query);
+
         // Create tabs for each engine
         this.createResultsTabs(results);
 
         // Scroll to results
         this.elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /**
+     * Create results summary section
+     */
+    createResultsSummary(results, query) {
+        const summaryContainer = document.getElementById('results-summary');
+        if (!summaryContainer) {
+            // Create summary container if it doesn't exist
+            const heading = this.elements.resultsSection.querySelector('#results-heading');
+            if (heading) {
+                const summaryDiv = document.createElement('div');
+                summaryDiv.id = 'results-summary';
+                summaryDiv.className = 'results-summary mb-4';
+                heading.parentNode.insertBefore(summaryDiv, heading.nextSibling);
+            }
+        }
+
+        const summary = document.getElementById('results-summary');
+        if (!summary) return;
+
+        const totalResults = results.reduce((total, result) => total + (result.results?.length || 0), 0);
+        const successfulEngines = results.filter(result => result.success).length;
+        const failedEngines = results.filter(result => !result.success).length;
+
+        // Collect all search URLs for "Open All" functionality
+        const allUrls = [];
+        results.forEach(result => {
+            if (result.success && result.results) {
+                result.results.forEach(item => {
+                    if (item.url) {
+                        allUrls.push(item.url);
+                    }
+                });
+            }
+        });
+
+        summary.innerHTML = `
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="card-title mb-2">Search Summary</h5>
+                            <p class="card-text mb-0">
+                                <span class="badge bg-primary me-2">${totalResults} Results</span>
+                                <span class="badge bg-success me-2">${successfulEngines} Engines</span>
+                                ${failedEngines > 0 ? `<span class="badge bg-danger me-2">${failedEngines} Failed</span>` : ''}
+                                <small class="text-muted ms-2">Query: "${query}"</small>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            ${allUrls.length > 0 ? `
+                                <button type="button" class="btn btn-primary btn-sm me-2"
+                                        onclick="window.uiManager.openAllResults(['${allUrls.join("','")}'])"
+                                        title="Open all search results">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>Open All (${allUrls.length})
+                                </button>
+                            ` : ''}
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    onclick="window.uiManager.clearResults()"
+                                    title="Clear results">
+                                <i class="bi bi-x-circle me-1"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Open all search results in new tabs
+     */
+    openAllResults(urls) {
+        if (!urls || urls.length === 0) return;
+
+        // Ask for confirmation if opening many tabs
+        if (urls.length > 5) {
+            const confirmed = confirm(`This will open ${urls.length} new tabs. Continue?`);
+            if (!confirmed) return;
+        }
+
+        urls.forEach(url => {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        });
+
+        this.modules.notification.success(`Opened ${urls.length} search results in new tabs`);
+    }
+
+    /**
+     * Clear search results
+     */
+    clearResults() {
+        if (this.elements.resultsSection) {
+            this.elements.resultsSection.classList.add('d-none');
+        }
+
+        // Clear tabs
+        if (this.elements.resultsNavTabs) {
+            this.elements.resultsNavTabs.innerHTML = '';
+        }
+        if (this.elements.resultsContent) {
+            this.elements.resultsContent.innerHTML = '';
+        }
+
+        // Clear summary
+        const summary = document.getElementById('results-summary');
+        if (summary) {
+            summary.innerHTML = '';
+        }
+
+        // Hide tabs container
+        const tabsContainer = document.getElementById('results-tabs');
+        if (tabsContainer) {
+            tabsContainer.classList.add('d-none');
+        }
+
+        this.modules.notification.info('Search results cleared');
     }
 
     /**
@@ -730,14 +848,84 @@ export class UIManager {
             `;
         }
 
-        // For now, just show that results would be displayed here
+        // Create actual result cards
+        const resultCards = result.results.map(item => this.createResultCard(item, result.engine)).join('');
+
         return `
-            <div class="alert alert-info">
-                <h5>Search Results</h5>
-                <p>Found ${result.results.length} results from ${result.engine}.</p>
-                <p><small>Note: Actual result display will be implemented in later tasks.</small></p>
+            <div class="search-results-container">
+                <div class="results-header mb-3">
+                    <h5>${result.engine} Results</h5>
+                    <small class="text-muted">Found ${result.results.length} result(s) • ${result.timestamp}</small>
+                </div>
+                <div class="results-list">
+                    ${resultCards}
+                </div>
             </div>
         `;
+    }
+
+    /**
+     * Create a result card for a single search result
+     */
+    createResultCard(result, engineName) {
+        const displayUrl = this.extractDisplayUrl(result.url);
+        const timestamp = new Date(result.timestamp).toLocaleString();
+
+        return `
+            <div class="result-card card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="result-content flex-grow-1">
+                            <h6 class="result-title mb-2">
+                                <a href="${result.url}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                    Search: ${result.query} on ${engineName}
+                                </a>
+                            </h6>
+                            <p class="result-url text-success mb-2">
+                                <small>${displayUrl}</small>
+                            </p>
+                            <p class="result-description text-muted mb-2">
+                                <small>Click to search for "${result.query}" on ${engineName}</small>
+                            </p>
+                            <div class="result-meta">
+                                <small class="text-muted">
+                                    <i class="bi bi-clock me-1"></i>${timestamp}
+                                    <span class="ms-2">
+                                        <i class="bi bi-search me-1"></i>${engineName}
+                                    </span>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="result-actions ms-3">
+                            <div class="btn-group-vertical btn-group-sm">
+                                <button type="button" class="btn btn-outline-primary btn-sm"
+                                        onclick="window.open('${result.url}', '_blank')"
+                                        title="Open in new tab">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                        onclick="navigator.clipboard.writeText('${result.url}')"
+                                        title="Copy URL">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Extract display URL from full URL
+     */
+    extractDisplayUrl(url) {
+        try {
+            const urlObj = new URL(url);
+            return `${urlObj.hostname}${urlObj.pathname}`;
+        } catch (error) {
+            return url;
+        }
     }
 
     // ========================================
@@ -818,7 +1006,7 @@ export class UIManager {
             <div class="mb-3">
                 <label for="engineId" class="form-label">Engine ID *</label>
                 <input type="text" class="form-control" id="engineId" name="engineId" required
-                       pattern="[a-zA-Z0-9_-]+"
+                       pattern="[a-zA-Z0-9_\-]+"
                        placeholder="e.g., custom-search"
                        title="Only letters, numbers, underscores, and hyphens allowed">
                 <div class="form-text">Unique identifier for the search engine</div>
@@ -893,7 +1081,7 @@ export class UIManager {
             <div class="mb-3">
                 <label for="editEngineId" class="form-label">Engine ID *</label>
                 <input type="text" class="form-control" id="editEngineId" name="engineId" required
-                       pattern="[a-zA-Z0-9_-]+" value="${engine.id}"
+                       pattern="[a-zA-Z0-9_\-]+" value="${engine.id}"
                        title="Only letters, numbers, underscores, and hyphens allowed">
                 <div class="form-text">Unique identifier for the search engine</div>
             </div>
@@ -1497,16 +1685,31 @@ export class UIManager {
                 keyboard: true
             });
 
+            // Store the element that triggered the modal for focus restoration
+            const triggerElement = document.activeElement;
+
             // Handle focus management to avoid ARIA warnings
             modalElement.addEventListener('shown.bs.modal', () => {
-                // Focus the first focusable element in the modal
+                // Focus the first input element, or the first focusable element
+                const inputElements = modalElement.querySelectorAll('input:not([type="hidden"]), select, textarea');
                 const focusableElements = modalElement.querySelectorAll(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
                 );
-                if (focusableElements.length > 0) {
+
+                if (inputElements.length > 0) {
+                    inputElements[0].focus();
+                } else if (focusableElements.length > 0) {
                     focusableElements[0].focus();
                 }
-            });
+            }, { once: true });
+
+            // Handle focus restoration when modal is hidden
+            modalElement.addEventListener('hidden.bs.modal', () => {
+                // Restore focus to the element that triggered the modal
+                if (triggerElement && triggerElement.focus) {
+                    triggerElement.focus();
+                }
+            }, { once: true });
 
             modal.show();
             console.log(`📱 UIManager: Showing modal: ${modalId}`);

@@ -446,6 +446,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Expose app globally for debugging
         window.app = app;
 
+        // Expose uiManager globally for HTML onclick handlers
+        window.uiManager = app.modules.ui;
+
     } catch (error) {
         console.error('❌ Failed to initialize SuperSearch:', error);
 

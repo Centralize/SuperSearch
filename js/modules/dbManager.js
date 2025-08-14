@@ -248,6 +248,26 @@ export class DatabaseManager {
         });
     }
 
+    /**
+     * Check if a value is a valid IndexedDB key
+     * @private
+     * @param {any} value
+     * @returns {boolean}
+     */
+    _isValidIndexKey(value) {
+        // IndexedDB keys must be: number, string, Date, or Array
+        // Boolean values are not valid keys for IndexedDB
+        if (value === null || value === undefined) {
+            return false;
+        }
+
+        const type = typeof value;
+        return type === 'number' ||
+               type === 'string' ||
+               value instanceof Date ||
+               Array.isArray(value);
+    }
+
     // ========================================
     // CRUD Operations
     // ========================================
@@ -396,12 +416,26 @@ export class DatabaseManager {
                 return allRecords.filter(record => record[indexName] === value);
             }
 
+            // Validate the key value for IndexedDB
+            if (!this._isValidIndexKey(value)) {
+                console.warn(`DatabaseManager: Invalid key value for index query: ${value}. Falling back to manual filtering.`);
+                const allRecords = await this._executeOperation(() => store.getAll());
+                return allRecords.filter(record => record[indexName] === value);
+            }
+
             const index = store.index(indexName);
             return this._executeOperation(() => index.getAll(value));
 
         } catch (error) {
             console.error(`DatabaseManager: Error in findByIndex for ${storeName}.${indexName}:`, error);
-            throw error;
+            // Fallback to manual filtering if index query fails
+            try {
+                const allRecords = await this.getAll(storeName);
+                return allRecords.filter(record => record[indexName] === value);
+            } catch (fallbackError) {
+                console.error(`DatabaseManager: Fallback also failed:`, fallbackError);
+                throw error;
+            }
         }
     }
 
@@ -507,7 +541,15 @@ export class DatabaseManager {
      * @returns {Promise<Array>}
      */
     async getActiveEngines() {
-        return this.findByIndex('engines', 'isActive', true);
+        try {
+            // Use findWhere instead of findByIndex for boolean values
+            return this.findWhere('engines', engine => engine.isActive === true);
+        } catch (error) {
+            console.warn('Failed to get active engines, falling back to all engines:', error);
+            // Fallback to getting all engines and filtering
+            const allEngines = await this.getAll('engines');
+            return allEngines.filter(engine => engine.isActive === true);
+        }
     }
 
     /**
@@ -515,8 +557,17 @@ export class DatabaseManager {
      * @returns {Promise<Object|null>}
      */
     async getDefaultEngine() {
-        const defaultEngines = await this.findByIndex('engines', 'isDefault', true);
-        return defaultEngines.length > 0 ? defaultEngines[0] : null;
+        try {
+            // Use findWhere instead of findByIndex for boolean values
+            const defaultEngines = await this.findWhere('engines', engine => engine.isDefault === true);
+            return defaultEngines.length > 0 ? defaultEngines[0] : null;
+        } catch (error) {
+            console.warn('Failed to get default engine, falling back to all engines:', error);
+            // Fallback to getting all engines and filtering
+            const allEngines = await this.getAll('engines');
+            const defaultEngines = allEngines.filter(engine => engine.isDefault === true);
+            return defaultEngines.length > 0 ? defaultEngines[0] : null;
+        }
     }
 
     /**
@@ -608,22 +659,81 @@ export class DatabaseManager {
 
         return new Promise((resolve, reject) => {
             const deleteRequest = indexedDB.deleteDatabase(this.dbName);
+            let isResolved = false;
+
+            // Set a timeout to handle blocked deletion
+            const timeout = setTimeout(() => {
+                if (!isResolved) {
+                    isResolved = true;
+                    console.warn('⚠️ DatabaseManager: Database deletion timed out, attempting force clear');
+                    // Try to clear data instead of deleting database
+                    this._forceClearDatabase().then(resolve).catch(reject);
+                }
+            }, 5000); // 5 second timeout
 
             deleteRequest.onsuccess = () => {
-                console.log('✅ DatabaseManager: Database deleted successfully');
-                resolve();
+                if (!isResolved) {
+                    isResolved = true;
+                    clearTimeout(timeout);
+                    console.log('✅ DatabaseManager: Database deleted successfully');
+                    resolve();
+                }
             };
 
             deleteRequest.onerror = () => {
-                console.error('❌ DatabaseManager: Failed to delete database');
-                reject(new Error('Failed to delete database'));
+                if (!isResolved) {
+                    isResolved = true;
+                    clearTimeout(timeout);
+                    console.error('❌ DatabaseManager: Failed to delete database');
+                    reject(new Error('Failed to delete database'));
+                }
             };
 
             deleteRequest.onblocked = () => {
-                console.warn('⚠️ DatabaseManager: Database deletion blocked');
-                reject(new Error('Database deletion blocked - close all tabs'));
+                console.warn('⚠️ DatabaseManager: Database deletion blocked, trying alternative approach...');
+                // Don't reject immediately, let the timeout handle it
+                setTimeout(() => {
+                    if (!isResolved) {
+                        isResolved = true;
+                        clearTimeout(timeout);
+                        console.log('🔄 DatabaseManager: Attempting to clear database data instead...');
+                        this._forceClearDatabase().then(resolve).catch(reject);
+                    }
+                }, 1000); // Wait 1 second before trying alternative
             };
         });
+    }
+
+    /**
+     * Force clear all data from database when deletion is blocked
+     * @private
+     * @returns {Promise<void>}
+     */
+    async _forceClearDatabase() {
+        console.log('🧹 DatabaseManager: Force clearing database data...');
+
+        try {
+            // Reinitialize the database connection if needed
+            if (!this.db) {
+                await this.init();
+            }
+
+            // Clear all object stores
+            const storeNames = Object.keys(this.stores);
+            for (const storeName of storeNames) {
+                try {
+                    await this.clear(storeName);
+                    console.log(`✅ Cleared store: ${storeName}`);
+                } catch (error) {
+                    console.warn(`Failed to clear store ${storeName}:`, error);
+                }
+            }
+
+            console.log('✅ DatabaseManager: Database data cleared successfully');
+        } catch (error) {
+            console.error('❌ DatabaseManager: Failed to force clear database:', error);
+            throw new Error(`Failed to clear database data: ${error.message}`);
+        }
     }
 
     /**

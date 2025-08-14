@@ -108,9 +108,7 @@ export class SearchHandler {
 
         try {
             // Since we can't directly scrape search results due to CORS,
-            // we'll simulate the search by opening the URL in a new tab
-            // and returning a placeholder result
-
+            // we return the search URL as a result that users can click to open
             // In a real implementation, this would require a backend service
             // or browser extension to bypass CORS restrictions
 
@@ -199,7 +197,7 @@ export class SearchHandler {
 
         for (const engine of engines) {
             if (typeof engine === 'string') {
-                // Engine ID provided, need to fetch full object
+                // Engine ID provided as string, need to fetch full object
                 try {
                     const fullEngine = await this.searchEngineManager.getEngine(engine);
                     resolvedEngines.push(fullEngine);
@@ -207,8 +205,21 @@ export class SearchHandler {
                     console.warn(`Failed to resolve engine ${engine}:`, error);
                 }
             } else if (engine && engine.id) {
-                // Full engine object provided
-                resolvedEngines.push(engine);
+                // Check if this is a full engine object or just an ID wrapper
+                if (engine.name && engine.url) {
+                    // Full engine object provided
+                    resolvedEngines.push(engine);
+                } else {
+                    // Partial engine object with just ID, need to fetch full object
+                    try {
+                        const fullEngine = await this.searchEngineManager.getEngine(engine.id);
+                        resolvedEngines.push(fullEngine);
+                    } catch (error) {
+                        console.warn(`Failed to resolve engine ${engine.id}:`, error);
+                    }
+                }
+            } else {
+                console.warn('Invalid engine format:', engine);
             }
         }
 
